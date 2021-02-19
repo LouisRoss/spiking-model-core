@@ -1,2 +1,2 @@
-# spiking-core
-Core support for spiking-model and others
+# spiking-model-core
+Core support for spiking-model and spiking-model-gpu.
