@@ -27,7 +27,7 @@ namespace embeddedpenguins::core::neuron::model
     template<class MODELHELPERTYPE>
     class ModelInitializerProxy : IModelInitializer<MODELHELPERTYPE>
     {
-        using InitializerCreator = IModelInitializer<MODELHELPERTYPE>* (*)(MODELHELPERTYPE helper);
+        using InitializerCreator = IModelInitializer<MODELHELPERTYPE>* (*)(MODELHELPERTYPE& helper);
         using InitializerDeleter = void (*)(IModelInitializer<MODELHELPERTYPE>*);
 
         const string initializerSharedLibraryPath_ {};
