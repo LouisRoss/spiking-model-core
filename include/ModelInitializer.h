@@ -24,6 +24,6 @@ namespace embeddedpenguins::modelengine::sdk
 
     public:
         // IModelInitializer interface, must be implemented, but not used if not a proxy class.
-        virtual void CreateProxy(MODELHELPERTYPE helper) { }
+        virtual void CreateProxy(MODELHELPERTYPE& helper) override { }
     };
 }

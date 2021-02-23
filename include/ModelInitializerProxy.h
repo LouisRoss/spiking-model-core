@@ -60,7 +60,7 @@ namespace embeddedpenguins::core::neuron::model
 
     public:
         // IModelInitializer implementaton
-        virtual void CreateProxy(MODELHELPERTYPE helper) override
+        virtual void CreateProxy(MODELHELPERTYPE& helper) override
         {
             LoadInitializer();
             if (createInitializer_ != nullptr)

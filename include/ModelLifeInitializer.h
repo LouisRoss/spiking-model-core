@@ -35,12 +35,6 @@ namespace embeddedpenguins::life::infrastructure
 
         }
 
-        // Must be implemented, but not used unless implementation is a proxy.
-        virtual void CreateProxy(MODELHELPERTYPE& helper) override
-        {
-
-        }
-
         virtual void Initialize() override
         {
             this->helper_.InitializeModel();
