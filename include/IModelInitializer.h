@@ -12,7 +12,7 @@ namespace embeddedpenguins::core::neuron::model
     public:
         virtual ~IModelInitializer() = default;
 
-        virtual void CreateProxy(MODELHELPERTYPE helper) = 0;
+        virtual void CreateProxy(MODELHELPERTYPE& helper) = 0;
 
         //
         // Called before the model is run, this required method must 
