@@ -18,7 +18,7 @@ namespace embeddedpenguins::core::neuron::model
     class ModelAnticipateInitializer : public ModelNeuronInitializer<MODELHELPERTYPE>
     {
     public:
-        ModelAnticipateInitializer(MODELHELPERTYPE helper) :
+        ModelAnticipateInitializer(MODELHELPERTYPE& helper) :
             ModelNeuronInitializer<MODELHELPERTYPE>(helper)
         {
         }
