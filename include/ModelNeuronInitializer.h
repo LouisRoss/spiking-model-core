@@ -37,7 +37,7 @@ namespace embeddedpenguins::core::neuron::model
     class ModelNeuronInitializer : public IModelInitializer<MODELHELPERTYPE>
     {
     protected:
-        MODELHELPERTYPE helper_;
+        MODELHELPERTYPE& helper_;
 
         int strength_ { 21 };
 
@@ -46,7 +46,7 @@ namespace embeddedpenguins::core::neuron::model
         const json& Configuration() const { return helper_.Configuration(); }
 
     public:
-        ModelNeuronInitializer(MODELHELPERTYPE helper) :
+        ModelNeuronInitializer(MODELHELPERTYPE& helper) :
             helper_(helper)
         {
             LoadOptionalNamedNeurons();
@@ -54,7 +54,7 @@ namespace embeddedpenguins::core::neuron::model
 
     public:
         // IModelInitializer implementaton
-        virtual void CreateProxy(MODELHELPERTYPE helper) override { }
+        virtual void CreateProxy(MODELHELPERTYPE& helper) override { }
 
     protected:
         void InitializeAnInput(int row, int column)
