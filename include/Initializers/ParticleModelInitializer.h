@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ConfigurationRepository.h"
-#include "sdk/ModelInitializer.h"
+#include "ModelInitializer.h"
 
 #include "ParticleOperation.h"
 #include "ParticleSupport.h"

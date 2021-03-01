@@ -5,7 +5,7 @@
 
 #include "ConfigurationRepository.h"
 #include "ModelEngine.h"
-#include "sdk/ModelInitializer.h"
+#include "ModelInitializer.h"
 
 #include "LifeNode.h"
 #include "LifeOperation.h"
