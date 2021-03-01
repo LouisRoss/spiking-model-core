@@ -1,16 +1,12 @@
 #pragma once
 
-#include "ModelEngineCommon.h"
+#include "nlohmann/json.hpp"
 
 #include "ModelNeuronInitializer.h"
 
-namespace embeddedpenguins::neuron::infrastructure
+namespace embeddedpenguins::core::neuron::model
 {
-    using embeddedpenguins::modelengine::ConfigurationUtilities;
-    using embeddedpenguins::neuron::infrastructure::ModelNeuronInitializer;
-    using embeddedpenguins::neuron::infrastructure::NeuronOperation;
-    using embeddedpenguins::neuron::infrastructure::NeuronRecord;
-    using embeddedpenguins::modelengine::threads::ProcessCallback;
+    using nlohmann::json;
 
     //
     // This custom initializer sets up a spiking neuron model for 
@@ -21,8 +17,8 @@ namespace embeddedpenguins::neuron::infrastructure
     class ModelLayerInitializer : public ModelNeuronInitializer<MODELHELPERTYPE>
     {
     public:
-        ModelLayerInitializer(ConfigurationUtilities& configuration, MODELHELPERTYPE helper) :
-            ModelNeuronInitializer<MODELHELPERTYPE>(configuration, helper)
+        ModelLayerInitializer(MODELHELPERTYPE& helper) :
+            ModelNeuronInitializer<MODELHELPERTYPE>(helper)
         {
         }
 
@@ -37,19 +33,19 @@ namespace embeddedpenguins::neuron::infrastructure
             this->InitializeAnInput(0, 4);
             this->InitializeAnInput(0, 5);
 
-            this->strength_ = this->configuration_.Configuration()["Model"]["InitialSynapticStrength"];
-            for (auto row = 0; row < this->height_ - 1; row++)
+            this->strength_ = this->Configuration()["Model"]["InitialSynapticStrength"];
+            for (auto row = 0; row < this->helper_.Height() - 1; row++)
             {
                 InitializeARow(row, row + 1);
             }
-            InitializeARow(this->height_ - 1, 0);
+            InitializeARow(this->helper_.Height() - 1, 0);
         }
 
     private:
         void InitializeARow(int row, int destRow)
         {
-            for (auto column = 0; column < this->width_; column++)
-                for (auto destCol = 0; destCol < this->width_; destCol++)
+            for (auto column = 0; column < this->helper_.Width(); column++)
+                for (auto destCol = 0; destCol < this->helper_.Width(); destCol++)
                     this->InitializeAConnection(row, column, destRow, destCol);
         }
     };

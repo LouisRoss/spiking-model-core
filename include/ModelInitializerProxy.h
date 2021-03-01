@@ -8,7 +8,7 @@
 #include "nlohmann/json.hpp"
 
 #include "ConfigurationRepository.h"
-#include "IModelInitializer.h"
+#include "Initializers/IModelInitializer.h"
 
 namespace embeddedpenguins::core::neuron::model
 {

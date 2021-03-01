@@ -1,8 +1,6 @@
 #include <memory>
 #include <string>
 
-#include "ModelEngineCommon.h"
-
 #include "ModelNeuronInitializer.h"
 #include "sdk/IModelPersister.h"
 #include "persistence/sonata/SonataModelRepository.h"
@@ -11,7 +9,7 @@
 #include "CpuModelCarrier.h"
 
 //#define TESTING
-namespace embeddedpenguins::neuron::infrastructure
+namespace embeddedpenguins::core::neuron::model
 {
     using std::unique_ptr;
     using std::make_unique;
@@ -19,12 +17,7 @@ namespace embeddedpenguins::neuron::infrastructure
 
     using nlohmann::json;
 
-    using embeddedpenguins::modelengine::ConfigurationUtilities;
-    using embeddedpenguins::neuron::infrastructure::ModelNeuronInitializer;
-    using embeddedpenguins::neuron::infrastructure::NeuronOperation;
-    using embeddedpenguins::neuron::infrastructure::NeuronRecord;
     using embeddedpenguins::neuron::infrastructure::CpuModelCarrier;
-    using embeddedpenguins::modelengine::threads::ProcessCallback;
     using embeddedpenguins::neuron::infrastructure::persistence::IModelPersister;
     using embeddedpenguins::neuron::infrastructure::persistence::sonata::SonataModelRepository;
     using embeddedpenguins::neuron::infrastructure::persistence::sonata::SonataModelPersister;
@@ -42,11 +35,11 @@ namespace embeddedpenguins::neuron::infrastructure
         unique_ptr<SonataModelRepository> sonataRepository_ {nullptr};
 
     public:
-        ModelSonataInitializer(ConfigurationUtilities& configuration, MODELHELPERTYPE helper)  :
-            ModelNeuronInitializer<MODELHELPERTYPE>(configuration, helper)
+        ModelSonataInitializer(MODELHELPERTYPE& helper)  :
+            ModelNeuronInitializer<MODELHELPERTYPE>(helper)
         {
             cout << "ModelSonataInitializer ctor\n";
-            const json& sonataConfigurationJson = this->configuration_.Configuration()["Model"]["SonataConfiguration"];
+            const json& sonataConfigurationJson = this->Configuration()["Model"]["SonataConfiguration"];
             if (!sonataConfigurationJson.is_string())
             {
                 cout << "ModelSonataInitializer unable to find sonata configuration file path\n";
@@ -68,7 +61,7 @@ namespace embeddedpenguins::neuron::infrastructure
             }
 #ifndef TESTING
             persister_->LoadConfiguration();
-            persister_->ReadModel(this->helper_.Carrier(), this->configuration_);
+            persister_->ReadModel(this->helper_.Model(), this->helper_.Repository());
 #else
             helper_.InitializeModel(900);
 
