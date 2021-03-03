@@ -2,6 +2,7 @@
     "Model":
     {
         "ModelSize": 5000,
+        "Dimensions": [50, 25],
         "ModelTicks": 10000,
         "InitialSynapticStrength": 40,
         "InputStreamFileGenerator": "./nngenlayer.py"
