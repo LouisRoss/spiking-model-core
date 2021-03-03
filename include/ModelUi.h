@@ -153,8 +153,8 @@ namespace embeddedpenguins::core::neuron::model
             cout
                 <<  Legend() << ":(" << centerWidth_ << "," << centerHeight_ << ") "
                 << " Tick: " << modelRunner_.EnginePeriod().count() << " us "
-                << "Iterations: " << modelRunner_.getModelEngine().GetIterations() 
-                << "  Total work: " << modelRunner_.getModelEngine().GetTotalWork() 
+                << "Iterations: " << modelRunner_.GetModelEngine().GetIterations() 
+                << "  Total work: " << modelRunner_.GetModelEngine().GetTotalWork() 
                 << "                 \n";
 
             cout << "Arrow keys to navigate       + and - keys control speed            q to quit\n";
@@ -168,20 +168,22 @@ namespace embeddedpenguins::core::neuron::model
             {
                 auto& [ypos, xpos] = posTuple;
                 auto neuronIndex = helper_.GetIndex(ypos, xpos);
-                auto& neuron = helper_.Carrier().NeuronsHost[neuronIndex];
+                auto neuronActivation = helper_.GetNeuronActivation(neuronIndex);
+                auto neuronTicksSinceLastSpike = helper_.GetNeuronTicksSinceLastSpike(neuronIndex);
                 cout << "Neuron " << std::setw(15) << neuronName << " [" << ypos << ", " << xpos << "] = " << std::setw(4) << neuronIndex << ": ";
-                cout << std::setw(5) << neuron.Activation << "(" << std::setw(3) << neuron.TicksSinceLastSpike << ")";
+                cout << std::setw(5) << neuronActivation << "(" << std::setw(3) << neuronTicksSinceLastSpike << ")";
                 cout << std::endl;
 
-                auto& synapsesForNeuron = helper_.Carrier().SynapsesHost[neuronIndex];
                 for (auto synapseId = 0; synapseId < SynapticConnectionsPerNode; synapseId++)
                 {
-                    if (*(unsigned long*)&synapsesForNeuron[synapseId].PresynapticNeuron != 0)
+                    if (helper_.IsSynapseUsed(neuronIndex, synapseId))
                     {
-                        cout << std::setw(20) << (unsigned long int)synapsesForNeuron[synapseId].PresynapticNeuron
-                        << "(" << std::setw(3) << (unsigned int)synapsesForNeuron[synapseId].Strength << ")  ";
+                        auto presynapticNeuronIndex = helper_.GetPresynapticNeuron(neuronIndex, synapseId);
+                        cout << std::setw(20) << presynapticNeuronIndex
+                        << "(" << std::setw(3) << helper_.GetSynapticStrength(neuronIndex, synapseId) << ")  ";
                     }
                 }
+
                 cout << std::endl;
                 cout << std::endl;
             }
@@ -190,8 +192,8 @@ namespace embeddedpenguins::core::neuron::model
             cout
                 <<  Legend() << ": "
                 << " Tick: " << modelRunner_.EnginePeriod().count() << " us "
-                << "Iterations: " << modelRunner_.getModelEngine().GetIterations() 
-                << "  Total work: " << modelRunner_.getModelEngine().GetTotalWork() 
+                << "Iterations: " << modelRunner_.GetModelEngine().GetIterations() 
+                << "  Total work: " << modelRunner_.GetModelEngine().GetTotalWork() 
                 << "                 \n";
 
             cout << "+ and - keys control speed            q to quit\n";

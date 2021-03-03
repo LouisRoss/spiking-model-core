@@ -7,16 +7,16 @@
 
 #include "nlohmann/json.hpp"
 
-#include "ModelEngineCommon.h"
 #include "sdk/IModelPersister.h"
 #include "persistence/sonata/SonataModelRepository.h"
 #include "persistence/sonata/SonataModelPersister.h"
 #include "persistence/sonata/SonataInputSpikeLoader.h"
 
-#include "SensorInput/ISensorInput.h"
+#include "ConfigurationRepository.h"
+#include "SensorInputs/ISensorInput.h"
 
 //#define TESTING
-namespace embeddedpenguins::neuron::infrastructure::sensorinput
+namespace embeddedpenguins::core::neuron::model
 {
     using std::cout;
     using std::ifstream;
@@ -27,30 +27,32 @@ namespace embeddedpenguins::neuron::infrastructure::sensorinput
 
     using nlohmann::json;
 
-    using embeddedpenguins::modelengine::ConfigurationUtilities;
     using embeddedpenguins::neuron::infrastructure::persistence::IModelPersister;
     using embeddedpenguins::neuron::infrastructure::persistence::sonata::SonataModelRepository;
     using embeddedpenguins::neuron::infrastructure::persistence::sonata::SonataModelPersister;
     using embeddedpenguins::neuron::infrastructure::persistence::sonata::SonataInputSpikeLoader;
 
+    template<class MODELCARRIERTYPE>
     class SensorSonataFile : public ISensorInput
     {
-        const ConfigurationUtilities& configuration_;
+        const ConfigurationRepository& configuration_;
         nlohmann::ordered_json inputStream_ {};
 
         unique_ptr<SonataModelRepository> sonataRepository_ {nullptr};
-        unique_ptr<IModelPersister<CpuModelCarrier>> persister_ {nullptr};
+        unique_ptr<IModelPersister<MODELCARRIERTYPE>> persister_ {nullptr};
 
         multimap<int, unsigned long long int> signalToInject_ {};
         vector<unsigned long long> signalToReturn_ {};
 
     public:
-        SensorSonataFile(const ConfigurationUtilities& configuration) :
+        SensorSonataFile(const ConfigurationRepository& configuration) :
             configuration_(configuration)
         {
         }
 
         // ISensorInput implementaton
+        virtual void CreateProxy(const ConfigurationRepository& configuration) override { }
+
         virtual bool Connect(const string& connectionString) override
         {
             cout << "SensorSonataFile Connect(" << connectionString << ")\n";
