@@ -16,6 +16,7 @@ namespace embeddedpenguins::core::neuron::model
         virtual void CreateProxy(const ConfigurationRepository& configuration) = 0;
         virtual bool Connect(const string& connectionString) = 0;
         virtual bool Disconnect() = 0;
+        virtual vector<unsigned long long>& AcquireBuffer() = 0;
         virtual vector<unsigned long long>& StreamInput(unsigned long long int tickNow) = 0;
     };
 }
