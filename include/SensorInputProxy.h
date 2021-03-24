@@ -117,6 +117,32 @@ namespace embeddedpenguins::core::neuron::model
             return false;
         }
 
+        virtual vector<unsigned long long>& AcquireBuffer() override
+        {
+            errorReason_.clear();
+
+            if (sensorInput_ && valid_)
+                return sensorInput_->AcquireBuffer();
+
+            if (!sensorInput_)
+            {
+                std::ostringstream os;
+                os << "Error calling AcquireBuffer(): sensor input library " 
+                    << sensorInputSharedLibraryPath_ << " not loaded";
+                errorReason_ = os.str();
+            }
+
+            if (!valid_)
+            {
+                std::ostringstream os;
+                os << "Error calling AcquireBuffer(): invalid sensor input library " 
+                    << sensorInputSharedLibraryPath_;
+                errorReason_ = os.str();
+            }
+
+            return dummyInput_;
+        }
+
         virtual vector<unsigned long long>& StreamInput(unsigned long long int tickNow) override
         {
             errorReason_.clear();
