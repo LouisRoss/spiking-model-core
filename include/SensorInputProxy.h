@@ -8,7 +8,7 @@
 #include <dlfcn.h>
 
 #include "ConfigurationRepository.h"
-#include "ISensorInput.h"
+#include "SensorInputs/ISensorInput.h"
 
 namespace embeddedpenguins::core::neuron::model
 {

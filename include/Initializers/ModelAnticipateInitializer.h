@@ -1,14 +1,9 @@
 #pragma once
 
-#include "nlohmann/json.hpp"
-
 #include "ModelNeuronInitializer.h"
-#include "ConfigurationRepository.h"
 
 namespace embeddedpenguins::core::neuron::model
 {
-    using nlohmann::json;
-
     //
     // This custom initializer sets up a spiking neuron model for 
     // the 'anticipate' test, which demonstrates STDP over repeated
@@ -27,8 +22,7 @@ namespace embeddedpenguins::core::neuron::model
         // IModelInitializer implementaton
         virtual void Initialize() override
         {
-            if (!this->helper_.InitializeModel()) 
-                return;
+            this->helper_.InitializeModel();
 
             const Neuron2Dim I1 { this->ResolveNeuron("I1") };
             const Neuron2Dim I2 { this->ResolveNeuron("I2") };

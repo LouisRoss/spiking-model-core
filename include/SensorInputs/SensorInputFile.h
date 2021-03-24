@@ -6,8 +6,8 @@
 
 #include "nlohmann/json.hpp"
 
-#include "core/ConfigurationRepository.h"
-#include "core/ISensorInput.h"
+#include "ConfigurationRepository.h"
+#include "SensorInputs/ISensorInput.h"
 
 namespace embeddedpenguins::core::neuron::model
 {
@@ -17,8 +17,6 @@ namespace embeddedpenguins::core::neuron::model
     using std::make_pair;
 
     using nlohmann::json;
-
-    using embeddedpenguins::core::neuron::model::ConfigurationRepository;
 
     class SensorInputFile : public ISensorInput
     {

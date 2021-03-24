@@ -26,6 +26,7 @@ namespace embeddedpenguins::core::neuron::model
         string controlFile_ {};
         string configFile_ {};
         string monitorFile_ {};
+    protected:
         json configuration_ {};
         json control_ {};
         json monitor_ {};
