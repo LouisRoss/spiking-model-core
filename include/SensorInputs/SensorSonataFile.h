@@ -107,6 +107,11 @@ namespace embeddedpenguins::core::neuron::model
             return true;
         }
 
+        virtual vector<unsigned long long>& AcquireBuffer() override
+        {
+            return signalToReturn_;
+        }
+
         virtual vector<unsigned long long>& StreamInput(unsigned long long int tickNow) override
         {
 #ifndef TESTING
