@@ -2,16 +2,19 @@
 
 #include <string>
 #include <iostream>
+#include <memory>
 #include <map>
 #include <chrono>
 #include <numeric>
 
 #include "KeyListener.h"
+#include "ICommandControlAcceptor.h"
 
 namespace embeddedpenguins::core::neuron::model
 {
     using std::cout;
     using std::string;
+    using std::unique_ptr;
     using std::map;
     using std::chrono::microseconds;
     using std::ceil;
@@ -33,14 +36,17 @@ namespace embeddedpenguins::core::neuron::model
 
         map<string, tuple<int, int>> namedNeurons_ { };
 
+        unique_ptr<ICommandControlAcceptor> commandControl_;
+
     protected:
         MODELRUNNERTYPE& modelRunner_;
         MODELHELPERTYPE& helper_;
 
     public:
-        ModelUi(MODELRUNNERTYPE& modelRunner, MODELHELPERTYPE& helper) :
+        ModelUi(MODELRUNNERTYPE& modelRunner, MODELHELPERTYPE& helper, unique_ptr<ICommandControlAcceptor> commandControl) :
             modelRunner_(modelRunner),
-            helper_(helper)
+            helper_(helper),
+            commandControl_(std::move(commandControl))
         {
             width_ = helper_.Width();
             height_ = helper_.Height();
@@ -52,6 +58,8 @@ namespace embeddedpenguins::core::neuron::model
             centerWidth_ = ceil(width_ / 2);
 
             LoadOptionalNamedNeurons();
+
+            commandControl_->Initialize();
         }
 
         char PrintAndListenForQuit()
@@ -76,6 +84,8 @@ namespace embeddedpenguins::core::neuron::model
                             PrintNetworkScan();
                     }
 
+                    commandControl_->AcceptAndExecute();
+                    
                     auto gotChar = listener.Listen(50'000, c);
                     if (gotChar)
                     {
