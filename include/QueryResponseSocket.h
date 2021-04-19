@@ -71,7 +71,7 @@ namespace embeddedpenguins::core::neuron::model
 
             const string& response = queryHandler_->HandleQuery(query_);
 
-            *streamSocket_ << response << "\n";
+            *streamSocket_ << response;
 
             return true;
         }

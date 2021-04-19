@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iomanip>
 #include <chrono>
 #include <string>
 #include <fstream>
@@ -32,6 +33,18 @@ namespace embeddedpenguins::core::neuron::model
         unsigned long long int& ticks_;
         multimap<unsigned long long int, tuple<time_point, RECORDTYPE>> records_;
 
+        static bool Enable(bool enable, bool readback)
+        {
+            static bool enabled {true};
+
+            if (!readback) enabled = enable;
+            return enabled;
+        }
+
+    public:
+        static const bool Enabled() { return Enable(true, true); }
+        static void Enable(const bool enable) { Enable(enable, false); }
+
     public:
         Recorder(unsigned long long int& ticks) :
             ticks_(ticks)
@@ -40,7 +53,8 @@ namespace embeddedpenguins::core::neuron::model
 
         void Record(const RECORDTYPE& record)
         {
-            records_.insert(pair<unsigned long long int, tuple<time_point, RECORDTYPE>>(ticks_, make_tuple(Clock::now(), record)));
+            if (Enabled())
+                records_.insert(pair<unsigned long long int, tuple<time_point, RECORDTYPE>>(ticks_, make_tuple(Clock::now(), record)));
         }
 
         static multimap<unsigned long long int, tuple<time_point, RECORDTYPE>>& MergedRecords()
