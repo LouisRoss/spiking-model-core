@@ -14,13 +14,15 @@ namespace embeddedpenguins::core::neuron::model
     using nlohmann::json;
 
 
-    template<class RECORDTYPE>
+    template<class RECORDTYPE, class CONTEXTTYPE>
     class CommandControlHandler : public IQueryHandler
     {
+        CONTEXTTYPE& context_;
         string response_ { };
 
     public:
-        CommandControlHandler()
+        CommandControlHandler(CONTEXTTYPE& context) :
+            context_(context)
         {
 
         }
@@ -65,7 +67,7 @@ namespace embeddedpenguins::core::neuron::model
 
         json& BuildStatusResponse(json& response)
         {
-            json statusResponse;
+            json statusResponse = context_.Render();
             statusResponse["RecordEnable"] = Recorder<RECORDTYPE>::Enabled();
 
             response["Response"] = statusResponse;
