@@ -39,7 +39,7 @@ namespace embeddedpenguins::core::neuron::model
             {
                 cout << "HandleQuery failed to parse query string '" << query << "'\n";
                 json response;
-                response_ = BuildError(response, "format", (string(ex.what()) + " parsing json query").c_str()).dump();
+                response_ = BuildErrorResponse(response, "format", (string(ex.what()) + " parsing json query").c_str()).dump();
             }
             
             return response_;
@@ -56,12 +56,14 @@ namespace embeddedpenguins::core::neuron::model
                 query = jsonQuery["Query"].get<string>();
 
             if (query == "Status")
-                response_ = BuildStatus(response).dump();
+                response_ = BuildStatusResponse(response).dump();
+            else if (query == "Control")
+                response_ = BuildControlResponse(jsonQuery, response).dump();
             else
-                response_ = BuildError(response, "unrecognized", "Json query contains no recognized request").dump();
+                response_ = BuildErrorResponse(response, "unrecognized", "Json query contains no recognized request").dump();
         }
 
-        json& BuildStatus(json& response)
+        json& BuildStatusResponse(json& response)
         {
             json statusResponse;
             statusResponse["RecordEnable"] = Recorder<RECORDTYPE>::Enabled();
@@ -71,7 +73,31 @@ namespace embeddedpenguins::core::neuron::model
             return response;
         }
 
-        json& BuildError(json& response, const char* error, const char* errorDetail)
+        json& BuildControlResponse(const json& jsonQuery, json& response)
+        {
+            json controlResponse;
+
+            if (jsonQuery.contains("Values"))
+            {
+                auto& controlValues = jsonQuery["Values"];
+                if (controlValues.contains("RecordEnable"))
+                {
+                    Recorder<RECORDTYPE>::Enable(controlValues["RecordEnable"].get<bool>());
+                }
+                // Do more as they come up...
+
+                controlResponse["Result"] = "Ok";
+                response["Response"] = controlResponse;
+            }
+            else
+            {
+                return BuildErrorResponse(response, "missing Values", "Query json must contain a 'Values' element at the root");
+            }
+
+            return response;
+        }
+
+        json& BuildErrorResponse(json& response, const char* error, const char* errorDetail)
         {
             json errorResponse;
             errorResponse["Error"] = error;
