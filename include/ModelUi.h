@@ -59,7 +59,7 @@ namespace embeddedpenguins::core::neuron::model
 
             LoadOptionalNamedNeurons();
 
-            commandControl_->Initialize();
+            commandControl_->Initialize(0, nullptr);
         }
 
         char PrintAndListenForQuit()
