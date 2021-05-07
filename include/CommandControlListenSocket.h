@@ -60,7 +60,7 @@ namespace embeddedpenguins::core::neuron::model
             server_.destroy();
         }
 
-        virtual bool Initialize() override
+        virtual bool Initialize(int argc, char* argv[]) override
         {
             MakeSelectSet();
             return true;
@@ -72,7 +72,7 @@ namespace embeddedpenguins::core::neuron::model
         // to be readable, then handle all that are.
         // Use dynamic_cast to distinguish between socket types.
         //
-        virtual void AcceptAndExecute() override
+        virtual bool AcceptAndExecute() override
         {
             auto [readSockets, _] = selectSet_->wait(10'000);
 
@@ -86,6 +86,8 @@ namespace embeddedpenguins::core::neuron::model
                 if (dataSocket != nullptr)
                     HandleInput(readSocket, dataSocket);
             }
+
+            return false;
         }
 
     private:

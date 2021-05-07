@@ -6,6 +6,7 @@
 
 #include "IQueryHandler.h"
 #include "Recorder.h"
+#include "Log.h"
 
 namespace embeddedpenguins::core::neuron::model
 {
@@ -69,6 +70,7 @@ namespace embeddedpenguins::core::neuron::model
         {
             json statusResponse = context_.Render();
             statusResponse["RecordEnable"] = Recorder<RECORDTYPE>::Enabled();
+            statusResponse["LogEnable"] = Log::Enabled();
 
             response["Response"] = statusResponse;
 
@@ -86,9 +88,16 @@ namespace embeddedpenguins::core::neuron::model
                 {
                     Recorder<RECORDTYPE>::Enable(controlValues["RecordEnable"].get<bool>());
                 }
+                if (controlValues.contains("LogEnable"))
+                {
+                    Log::Enable(controlValues["LogEnable"].get<bool>());
+                }
                 // Do more as they come up...
 
-                controlResponse["Result"] = "Ok";
+                // Let the context capture what it knows about.
+                auto success = context_.SetValue(controlValues);
+
+                controlResponse["Result"] = success ? "Ok" : "Failed";
                 response["Response"] = controlResponse;
             }
             else

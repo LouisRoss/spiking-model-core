@@ -7,8 +7,8 @@ namespace embeddedpenguins::core::neuron::model
     public:
         virtual ~ICommandControlAcceptor() = default;
 
-        virtual bool Initialize() = 0;
+        virtual bool Initialize(int argc, char* argv[]) = 0;
 
-        virtual void AcceptAndExecute() = 0;
+        virtual bool AcceptAndExecute() = 0;
     };
 }

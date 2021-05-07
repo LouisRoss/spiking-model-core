@@ -43,9 +43,9 @@ namespace embeddedpenguins::core::neuron::model
         MODELHELPERTYPE& helper_;
 
     public:
-        ModelUi(MODELRUNNERTYPE& modelRunner, MODELHELPERTYPE& helper, unique_ptr<ICommandControlAcceptor> commandControl) :
+        ModelUi(MODELRUNNERTYPE& modelRunner, unique_ptr<ICommandControlAcceptor> commandControl) :
             modelRunner_(modelRunner),
-            helper_(helper),
+            helper_(modelRunner.Helper()),
             commandControl_(std::move(commandControl))
         {
             width_ = helper_.Width();
