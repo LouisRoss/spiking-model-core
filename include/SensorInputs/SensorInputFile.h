@@ -55,7 +55,11 @@ namespace embeddedpenguins::core::neuron::model
             cout << "Connect using sensor file " << sensorFile << "\n";
 
             ifstream sensorStream(sensorFile);
-            if (!sensorStream) return false;
+            if (!sensorStream)
+            {
+                cout << "SensorInputFile cannot open file '" << sensorFile << "', have you generated it with a Python utility?\n";
+                return false;
+            }
 
             sensorStream >> inputStream_;
             cout << inputStream_ << "\n";
