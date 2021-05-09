@@ -25,6 +25,11 @@ namespace embeddedpenguins::life::infrastructure
     using embeddedpenguins::modelengine::ModelEngine;
     using embeddedpenguins::modelengine::sdk::ModelInitializer;
 
+    //
+    // This custom initializer sets up a spiking neuron model for 
+    // the 'life' test, which demonstrates Conway's game of life
+    // as a finite-state automaton.
+    //
     template<class MODELHELPERTYPE>
     class ModelLifeInitializer : public ModelInitializer<MODELHELPERTYPE>
     {
