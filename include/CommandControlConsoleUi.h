@@ -4,6 +4,7 @@
 #include <string>
 #include <map>
 #include <tuple>
+#include <chrono>
 
 #include "ICommandControlAcceptor.h"
 #include "KeyListener.h"
@@ -14,6 +15,7 @@ namespace embeddedpenguins::core::neuron::model
     using std::string;
     using std::map;
     using std::tuple;
+    using std::chrono::microseconds;
 
     template<class MODELRUNNERTYPE, class MODELHELPERTYPE>
     class CommandControlConsoleUi : public ICommandControlAcceptor
@@ -44,6 +46,12 @@ namespace embeddedpenguins::core::neuron::model
 
         // ICommandControlAcceptor implementation.
     public:
+        virtual const string& Description() override
+        {
+            static string description { "Console UI" };
+            return description;
+        }
+
         virtual bool Initialize(int argc, char* argv[]) override
         {
             ParseArguments(argc, argv);

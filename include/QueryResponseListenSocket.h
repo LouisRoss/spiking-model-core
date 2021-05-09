@@ -62,6 +62,12 @@ namespace embeddedpenguins::core::neuron::model
             server_.destroy();
         }
 
+        virtual const string& Description() override
+        {
+            static string description { "Listen Socket" };
+            return description;
+        }
+
         virtual bool Initialize(int argc, char* argv[]) override
         {
             MakeSelectSet();
@@ -98,7 +104,6 @@ namespace embeddedpenguins::core::neuron::model
             if (ccSockets_.find(readSocket) == end(ccSockets_))
             {
                 cout << "QueryResponseListenSocket found readable socket is listen socket, creating new connection\n";
-                //auto dataSocket = make_unique<QueryResponseSocket>(listenSocket, queryHandlerGenerator_->Generate());
                 auto dataSocket = make_unique<QueryResponseSocket>(listenSocket, queryHandlerGenerator_());
                 ccSockets_[dataSocket->StreamSocket()] = std::move(dataSocket);
                 MakeSelectSet();
