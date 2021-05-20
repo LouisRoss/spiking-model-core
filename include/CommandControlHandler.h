@@ -1,6 +1,8 @@
 #pragma once
 
 #include <iostream>
+#include <string>
+#include <filesystem>
 
 #include "nlohmann/json.hpp"
 
@@ -11,6 +13,9 @@
 namespace embeddedpenguins::core::neuron::model
 {
     using std::cout;
+    using std::string;
+    using std::filesystem::directory_iterator;
+    using std::filesystem::exists;
 
     using nlohmann::json;
 
@@ -19,11 +24,13 @@ namespace embeddedpenguins::core::neuron::model
     class CommandControlHandler : public IQueryHandler
     {
         CONTEXTTYPE& context_;
+        function<void(const string&)> commandHandler_;
         string response_ { };
 
     public:
-        CommandControlHandler(CONTEXTTYPE& context) :
-            context_(context)
+        CommandControlHandler(CONTEXTTYPE& context, function<void(const string&)> commandHandler) :
+            context_(context),
+            commandHandler_(commandHandler)
         {
 
         }
@@ -33,6 +40,8 @@ namespace embeddedpenguins::core::neuron::model
         {
             try
             {
+                response_.clear();
+
                 auto jsonQuery = json::parse(query);
                 cout << "HandleQuery: " << jsonQuery << "\n";
 
@@ -52,53 +61,147 @@ namespace embeddedpenguins::core::neuron::model
         void ParseQuery(const json& jsonQuery)
         {
             json response;
-            response["Query"] = jsonQuery;
+            response["query"] = jsonQuery;
 
             string query;
-            if (jsonQuery.contains("Query"))
-                query = jsonQuery["Query"].get<string>();
+            if (jsonQuery.contains("query"))
+                query = jsonQuery["query"].get<string>();
 
-            if (query == "Status")
-                response_ = BuildStatusResponse(response).dump();
-            else if (query == "Control")
+            if (query == "fullstatus")
+                response_ = BuildFullStatusResponse(response).dump();
+            else if (query == "dynamicstatus")
+                response_ = BuildDynamicStatusResponse(response).dump();
+            else if (query == "configurations")
+                response_ = BuildConfigurationsResponse(response).dump();
+            else if (query == "control")
                 response_ = BuildControlResponse(jsonQuery, response).dump();
             else
                 response_ = BuildErrorResponse(response, "unrecognized", "Json query contains no recognized request").dump();
         }
 
-        json& BuildStatusResponse(json& response)
+        json& BuildFullStatusResponse(json& response)
         {
             json statusResponse = context_.Render();
-            statusResponse["RecordEnable"] = Recorder<RECORDTYPE>::Enabled();
-            statusResponse["LogEnable"] = Log::Enabled();
+            statusResponse["recordenable"] = Recorder<RECORDTYPE>::Enabled();
+            statusResponse["logenable"] = Log::Enabled();
 
-            response["Response"] = statusResponse;
+            json responseResponse;
+            responseResponse["status"] = statusResponse;
+            responseResponse["result"] = "ok";
 
+            response["response"] = responseResponse;
+
+            return response;
+        }
+
+        json& BuildDynamicStatusResponse(json& response)
+        {
+            json responseResponse;
+            responseResponse["status"] = context_.RenderDynamic();
+            responseResponse["result"] = "ok";
+
+            response["response"] = responseResponse;
+
+            return response;
+        }
+
+        json& BuildConfigurationsResponse(json& response)
+        {
+            cout << "Received configurations query\n";
+            json configuationsResponse;
+            json configurationOptions;
+
+            const auto& configurationSettings = context_.Configuration.Settings();
+
+            auto ok { false };
+            string errorDetail;
+            vector<string> configurations;
+            if (configurationSettings.contains("ConfigFilePath"))
+            {
+                const json& configFilePathJson = configurationSettings["ConfigFilePath"];
+                if (configFilePathJson.is_string())
+                {
+                    string configFilePath = configFilePathJson.get<string>();
+                    cout << "Configuration file path: " << configFilePathJson << "\n";
+                    if (exists(configFilePath))
+                    {
+                        for (auto& file : directory_iterator(configFilePath))
+                        {
+                            if (file.is_regular_file())
+                            {
+                                string filename = file.path().filename();
+                                cout << "Found configuration file " << filename << "\n";
+                                if (filename.length() > 5 && filename.substr(filename.length()-5, filename.length()) == ".json")
+                                    configurations.push_back(filename.substr(0, filename.length()-5));
+                            }
+                        }
+
+                        cout << "Returning:\n";
+                        for (auto& entry : configurations)
+                            cout << entry << "\n";
+
+                        ok = true;
+                    }
+                    else
+                    {
+                        errorDetail = "Configured path " + configFilePath + " does not exist";
+                    }
+                }
+                else
+                {
+                        errorDetail = "Configured path is not a valid string";
+                }
+            }
+            else
+            {
+                errorDetail = "No configured path";
+            }
+
+            configurationOptions["configurations"] = configurations;
+            configuationsResponse["options"] = configurationOptions;
+
+            configuationsResponse["result"] = ok ? "ok" : "fail";
+            if (!ok)
+            {
+                configuationsResponse["error"] = "No Configuration files";
+                configuationsResponse["errordetail"] = errorDetail;
+            }
+
+            response["response"] = configuationsResponse;
+            cout << "Returning json = " << response.dump() << "\n";
             return response;
         }
 
         json& BuildControlResponse(const json& jsonQuery, json& response)
         {
+            commandHandler_(jsonQuery.dump());
+            
             json controlResponse;
 
-            if (jsonQuery.contains("Values"))
+            if (jsonQuery.contains("values"))
             {
-                auto& controlValues = jsonQuery["Values"];
-                if (controlValues.contains("RecordEnable"))
+                auto& controlValues = jsonQuery["values"];
+                if (controlValues.contains("recordenable"))
                 {
-                    Recorder<RECORDTYPE>::Enable(controlValues["RecordEnable"].get<bool>());
+                    Recorder<RECORDTYPE>::Enable(controlValues["recordenable"].get<bool>());
                 }
-                if (controlValues.contains("LogEnable"))
+                if (controlValues.contains("logenable"))
                 {
-                    Log::Enable(controlValues["LogEnable"].get<bool>());
+                    Log::Enable(controlValues["logenable"].get<bool>());
                 }
                 // Do more as they come up...
 
                 // Let the context capture what it knows about.
                 auto success = context_.SetValue(controlValues);
 
-                controlResponse["Result"] = success ? "Ok" : "Failed";
-                response["Response"] = controlResponse;
+                json statusResponse = context_.Render();
+                statusResponse["recordenable"] = Recorder<RECORDTYPE>::Enabled();
+                statusResponse["logenable"] = Log::Enabled();
+
+                controlResponse["status"] = statusResponse;
+                controlResponse["result"] = success ? "ok" : "fail";
+
+                response["response"] = controlResponse;
             }
             else
             {
@@ -111,10 +214,11 @@ namespace embeddedpenguins::core::neuron::model
         json& BuildErrorResponse(json& response, const char* error, const char* errorDetail)
         {
             json errorResponse;
-            errorResponse["Error"] = error;
-            errorResponse["ErrorDetail"] = errorDetail;
+            errorResponse["result"] = "fail";
+            errorResponse["error"] = error;
+            errorResponse["errordetail"] = errorDetail;
 
-            response["Error"] = errorResponse;
+            response["response"] = errorResponse;
 
             return response;
         }

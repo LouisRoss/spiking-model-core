@@ -1,7 +1,13 @@
 #pragma once
 
+#include <string>
+#include <functional>
+
 namespace embeddedpenguins::core::neuron::model
 {
+    using std::string;
+    using std::function;
+
     class ICommandControlAcceptor
     {
     public:
@@ -9,8 +15,10 @@ namespace embeddedpenguins::core::neuron::model
 
         virtual const string& Description() = 0;
         
-        virtual bool Initialize(int argc, char* argv[]) = 0;
+        virtual bool ParseArguments(int argc, char* argv[]) = 0;
 
-        virtual bool AcceptAndExecute() = 0;
+        virtual bool Initialize() = 0;
+
+        virtual bool AcceptAndExecute(function<void(const string&)> commandHandler) = 0;
     };
 }

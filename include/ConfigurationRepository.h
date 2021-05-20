@@ -42,6 +42,21 @@ namespace embeddedpenguins::core::neuron::model
     public:
         ConfigurationRepository() = default;
 
+        //
+        // Load or reload a new configuration, overwriting any existing
+        // configuration.  The configuration is directed completely by
+        // the contents of the control file, whose name is passed in the controlFile
+        // parameter (with an assumed extension of .json), and will be found
+        // in the configuration file path, specified by:
+        // * The settings file at the settingsFile_ field, typicially ./ModelSettings.json
+        // * contains a json property called 'ConfigFilePath'.
+        //
+        // NOTE: The controlFile parameter should be only the file name
+        //       (or may include the relative path) and will be resolved 
+        //       in the configuration path as specified in the control file.
+        //       It may containe the '.json' extension, but the extension may
+        //       optionally be omitted.
+        //
         bool InitializeConfiguration(const string& controlFile)
         {
             controlFile_ = controlFile;
@@ -108,6 +123,12 @@ namespace embeddedpenguins::core::neuron::model
         }
 
     private:
+        //
+        // Load the settings from the JSON file speicified by the settingsFile_
+        // field into the settings_ field.  As a side effect, also load the 'ConfigFilePath'
+        // json property into the configurationPath_ field, if it exists.
+        // If any problem occurs, the valud_ field will be false.
+        //
         void LoadSettings()
         {
             if (settingsFile_.length() < 5 || settingsFile_.substr(settingsFile_.length()-5, settingsFile_.length()) != ".json")
@@ -117,19 +138,37 @@ namespace embeddedpenguins::core::neuron::model
             if (!(stat (settingsFile_.c_str(), &buffer) == 0))
             {
                 cout << "Settings file " << settingsFile_ << " does not exist, using defaults\n";
+                valid_ = false;
                 return;
             }
 
             cout << "LoadSettings from " << settingsFile_ << "\n";
-            ifstream settings(settingsFile_);
-            settings >> settings_;
+            try
+            {
+                ifstream settings(settingsFile_);
+                settings >> settings_;
 
-            configurationPath_ = "./";
-            auto configFilePathJson = settings_["ConfigFilePath"];
-            if (configFilePathJson.is_string())
-                configurationPath_ = configFilePathJson.get<string>();
+                configurationPath_ = "./";
+                if (settings_.contains("ConfigFilePath"))
+                {
+                    auto configFilePathJson = settings_["ConfigFilePath"];
+                    if (configFilePathJson.is_string())
+                        configurationPath_ = configFilePathJson.get<string>();
+                }
+            }
+            catch(const json::parse_error& e)
+            {
+                std::cerr << "Unable to read settings file " << settingsFile_ << ": " << e.what() << '\n';
+                valid_ = false;
+            }
         }
 
+        //
+        // Load the JSON control file as specified by the controlFile_ field
+        // set in the constructor.  The file is resolved in the path specified
+        // the by the configurationPath_ field read from the settings file.
+        // If any problem occurs, the valud_ field will be false.
+        //
         void LoadControl()
         {
             controlFile_ = configurationPath_ + "/" + controlFile_;
@@ -144,12 +183,34 @@ namespace embeddedpenguins::core::neuron::model
             }
 
             cout << "LoadControl from " << controlFile_ << "\n";
-            ifstream control(controlFile_);
-            control >> control_;
+            try
+            {
+                ifstream control(controlFile_);
+                control >> control_;
+            }
+            catch(const json::parse_error& e)
+            {
+                std::cerr << "Unable to read control file " << controlFile_ << ": " << e.what() << '\n';
+                valid_ = false;
+            }
         }
 
+        //
+        // Load the JSON configuration file as specified by the 'Configuration' property
+        // of the control file, as previously read into the control_ field.
+        // The file is resolved in the path specified the by the configurationPath_ field
+        // read from the settings file.
+        // If any problem occurs, the valud_ field will be false.
+        //
         void LoadConfiguration()
         {
+            if (!control_.contains("Configuration"))
+            {
+                cout << "Control file " << controlFile_ << " does not contain a 'Configuration' property\n";
+                valid_ = false;
+                return;
+            }
+
             configFile_ = control_["Configuration"].get<string>();
             if (configFile_.length() < 5 || configFile_.substr(configFile_.length()-5, configFile_.length()) != ".json")
                 configFile_ += ".json";
@@ -166,12 +227,34 @@ namespace embeddedpenguins::core::neuron::model
             }
 
             cout << "LoadConfiguration from " << configFile_ << "\n";
-            ifstream config(configFile_);
-            config >> configuration_;
+            try
+            {
+                ifstream config(configFile_);
+                config >> configuration_;
+            }
+            catch(const json::parse_error& e)
+            {
+                std::cerr << "Unable to read configuration file " << configFile_ << ": " << e.what() << '\n';
+                valid_ = false;
+            }
         }
 
+        //
+        // Load the JSON monitor file as specified by the 'Monitor' property
+        // of the control file, as previously read into the control_ field.
+        // The file is resolved in the path specified the by the configurationPath_ field
+        // read from the settings file.
+        // If any problem occurs, the valud_ field will be false.
+        //
         void LoadMonitor()
         {
+            if (!control_.contains("Monitor"))
+            {
+                cout << "Control file " << controlFile_ << " does not contain a 'Monitor' property\n";
+                valid_ = false;
+                return;
+            }
+
             monitorFile_ = control_["Monitor"].get<string>();
             if (monitorFile_.length() < 5 || monitorFile_.substr(monitorFile_.length()-5, monitorFile_.length()) != ".json")
                 monitorFile_ += ".json";
@@ -188,8 +271,16 @@ namespace embeddedpenguins::core::neuron::model
             }
 
             cout << "LoadMonitor from " << monitorFile_ << "\n";
-            ifstream monitor(monitorFile_);
-            monitor >> monitor_;
+            try
+            {
+                ifstream monitor(monitorFile_);
+                monitor >> monitor_;
+            }
+            catch(const json::parse_error& e)
+            {
+                std::cerr << "Unable to read monitor file " << monitorFile_ << ": " << e.what() << '\n';
+                valid_ = false;
+            }
         }
     };
 }

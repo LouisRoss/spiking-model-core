@@ -52,10 +52,30 @@ namespace embeddedpenguins::core::neuron::model
             return description;
         }
 
-        virtual bool Initialize(int argc, char* argv[]) override
+        virtual bool ParseArguments(int argc, char* argv[]) override
         {
-            ParseArguments(argc, argv);
+            cout << "Console UI C/C initializing\n";
 
+            for (auto i = 0; i < argc; i++)
+            {
+                string arg = argv[i];
+                if (arg == "-d" || arg == "--nodisplay")
+                {
+                    displayOn_ = false;
+                    cout << "Found " << arg << " flag, turning display off \n";
+                }
+                if (arg == "-m" || arg == "--monitored")
+                {
+                    displayMonitoredNeurons_ = true;
+                    cout << "Found " << arg << " flag, displaying monitored neurons \n";
+                }
+            }
+
+            return true;
+        }
+
+        virtual bool Initialize() override
+        {
             width_ = helper_.Width();
             height_ = helper_.Height();
 
@@ -70,7 +90,7 @@ namespace embeddedpenguins::core::neuron::model
             return true;
         }
 
-        virtual bool AcceptAndExecute() override
+        virtual bool AcceptAndExecute(function<void(const string&)> commandHandler) override
         {
             constexpr char KEY_UP = 'A';
             constexpr char KEY_DOWN = 'B';
@@ -166,24 +186,6 @@ namespace embeddedpenguins::core::neuron::model
 
                         namedNeurons_[neuronName] = make_tuple(xpos, ypos);
                     }
-                }
-            }
-        }
-
-        void ParseArguments(int argc, char* argv[])
-        {
-            for (auto i = 0; i < argc; i++)
-            {
-                string arg = argv[i];
-                if (arg == "-d" || arg == "--nodisplay")
-                {
-                    displayOn_ = false;
-                    cout << "Found " << arg << " flag, turning display off \n";
-                }
-                if (arg == "-m" || arg == "--monitored")
-                {
-                    displayMonitoredNeurons_ = true;
-                    cout << "Found " << arg << " flag, displaying monitored neurons \n";
                 }
             }
         }

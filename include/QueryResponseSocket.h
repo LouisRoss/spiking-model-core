@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <memory>
+#include <functional>
 
 #include "libsocket/exception.hpp"
 #include "libsocket/inetserverstream.hpp"
@@ -14,6 +15,7 @@ namespace embeddedpenguins::core::neuron::model
     using std::cout;
     using std::string;
     using std::unique_ptr;
+    using std::function;
 
     using libsocket::inet_stream;
     using libsocket::inet_stream_server;

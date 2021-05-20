@@ -34,7 +34,7 @@ namespace embeddedpenguins::core::neuron::model
 
     class QueryResponseListenSocket : public ICommandControlAcceptor
     {
-        function<unique_ptr<IQueryHandler>()> queryHandlerGenerator_;
+        function<unique_ptr<IQueryHandler>(function<void(const string&)>)> queryHandlerGenerator_;
 
         inet_stream_server server_;
         unique_ptr<selectset<socket>> selectSet_ { };
@@ -42,7 +42,7 @@ namespace embeddedpenguins::core::neuron::model
         map<socket*, unique_ptr<QueryResponseSocket>> ccSockets_ { };
 
     public:
-        QueryResponseListenSocket(const string& host, const string& port, function<unique_ptr<IQueryHandler>()> queryHandlerGenerator) :
+        QueryResponseListenSocket(const string& host, const string& port, function<unique_ptr<IQueryHandler>(function<void(const string&)>)> queryHandlerGenerator) :
             queryHandlerGenerator_(queryHandlerGenerator),
             server_(host, port, LIBSOCKET_IPv4)
         {
@@ -68,7 +68,13 @@ namespace embeddedpenguins::core::neuron::model
             return description;
         }
 
-        virtual bool Initialize(int argc, char* argv[]) override
+        virtual bool ParseArguments(int argc, char* argv[]) override
+        {
+            // No arguments used in this acceptor.
+            return true;
+        }
+
+        virtual bool Initialize() override
         {
             MakeSelectSet();
             return true;
@@ -80,7 +86,7 @@ namespace embeddedpenguins::core::neuron::model
         // to be readable, then handle all that are.
         // Use dynamic_cast to distinguish between socket types.
         //
-        virtual bool AcceptAndExecute() override
+        virtual bool AcceptAndExecute(function<void(const string&)> commandHandler) override
         {
             auto [readSockets, _] = selectSet_->wait(10'000);
 
@@ -88,7 +94,7 @@ namespace embeddedpenguins::core::neuron::model
             {
                 inet_stream_server* listenSocket = dynamic_cast<inet_stream_server*>(readSocket);
                 if (listenSocket != nullptr)
-                    AcceptNewConnection(readSocket, listenSocket);
+                    AcceptNewConnection(readSocket, listenSocket, commandHandler);
 
                 inet_stream* dataSocket = dynamic_cast<inet_stream*>(readSocket);
                 if (dataSocket != nullptr)
@@ -99,12 +105,12 @@ namespace embeddedpenguins::core::neuron::model
         }
 
     private:
-        void AcceptNewConnection(socket* readSocket, inet_stream_server* listenSocket)
+        void AcceptNewConnection(socket* readSocket, inet_stream_server* listenSocket, function<void(const string&)> commandHandler)
         {
             if (ccSockets_.find(readSocket) == end(ccSockets_))
             {
                 cout << "QueryResponseListenSocket found readable socket is listen socket, creating new connection\n";
-                auto dataSocket = make_unique<QueryResponseSocket>(listenSocket, queryHandlerGenerator_());
+                auto dataSocket = make_unique<QueryResponseSocket>(listenSocket, queryHandlerGenerator_(commandHandler));
                 ccSockets_[dataSocket->StreamSocket()] = std::move(dataSocket);
                 MakeSelectSet();
             }
