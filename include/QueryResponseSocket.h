@@ -22,7 +22,6 @@ namespace embeddedpenguins::core::neuron::model
 
     class QueryResponseSocket
     {
-        unique_ptr<IQueryHandler> queryHandler_ { };
         unique_ptr<inet_stream> streamSocket_;
 
         string query_ { };
@@ -31,8 +30,7 @@ namespace embeddedpenguins::core::neuron::model
         inet_stream* StreamSocket() const { return streamSocket_.get(); }
 
     public:
-        QueryResponseSocket(inet_stream_server* ccSocket, unique_ptr<IQueryHandler> queryHandler) :
-            queryHandler_(std::move(queryHandler)),
+        QueryResponseSocket(inet_stream_server* ccSocket) :
             streamSocket_(ccSocket->accept2())
         {
             // An attempt to stop the re-use timer at the system level, so we can restart immediately.
@@ -59,7 +57,7 @@ namespace embeddedpenguins::core::neuron::model
         // If the read is empty, assume the socket was closed by the client.
         // Return true unless the client closed the socket and we need to clean up this end.
         //
-        bool HandleInput()
+        bool HandleInput(unique_ptr<IQueryHandler> const & queryHandler)
         {
             string queryFragment;
             queryFragment.resize(1000);
@@ -71,7 +69,7 @@ namespace embeddedpenguins::core::neuron::model
 
             cout << "Query: " << query_;
 
-            const string& response = queryHandler_->HandleQuery(query_);
+            const string& response = queryHandler->HandleQuery(query_);
 
             *streamSocket_ << response;
 

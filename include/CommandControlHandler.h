@@ -7,6 +7,7 @@
 #include "nlohmann/json.hpp"
 
 #include "IQueryHandler.h"
+#include "IModelRunner.h"
 #include "Recorder.h"
 #include "Log.h"
 
@@ -20,17 +21,15 @@ namespace embeddedpenguins::core::neuron::model
     using nlohmann::json;
 
 
-    template<class RECORDTYPE, class CONTEXTTYPE>
+    template<class RECORDTYPE>
     class CommandControlHandler : public IQueryHandler
     {
-        CONTEXTTYPE& context_;
-        function<void(const string&)> commandHandler_;
+        IModelRunner& runner_;
         string response_ { };
 
     public:
-        CommandControlHandler(CONTEXTTYPE& context, function<void(const string&)> commandHandler) :
-            context_(context),
-            commandHandler_(commandHandler)
+        CommandControlHandler(IModelRunner& runner) :
+            runner_(runner)
         {
 
         }
@@ -81,12 +80,8 @@ namespace embeddedpenguins::core::neuron::model
 
         json& BuildFullStatusResponse(json& response)
         {
-            json statusResponse = context_.Render();
-            statusResponse["recordenable"] = Recorder<RECORDTYPE>::Enabled();
-            statusResponse["logenable"] = Log::Enabled();
-
             json responseResponse;
-            responseResponse["status"] = statusResponse;
+            responseResponse["status"] = BuildFullStatusElement();
             responseResponse["result"] = "ok";
 
             response["response"] = responseResponse;
@@ -97,7 +92,7 @@ namespace embeddedpenguins::core::neuron::model
         json& BuildDynamicStatusResponse(json& response)
         {
             json responseResponse;
-            responseResponse["status"] = context_.RenderDynamic();
+            responseResponse["status"] = runner_.RenderDynamicStatus();
             responseResponse["result"] = "ok";
 
             response["response"] = responseResponse;
@@ -111,7 +106,7 @@ namespace embeddedpenguins::core::neuron::model
             json configuationsResponse;
             json configurationOptions;
 
-            const auto& configurationSettings = context_.Configuration.Settings();
+            const auto& configurationSettings = runner_.Settings();
 
             auto ok { false };
             string errorDetail;
@@ -174,8 +169,6 @@ namespace embeddedpenguins::core::neuron::model
 
         json& BuildControlResponse(const json& jsonQuery, json& response)
         {
-            commandHandler_(jsonQuery.dump());
-            
             json controlResponse;
 
             if (jsonQuery.contains("values"))
@@ -189,16 +182,38 @@ namespace embeddedpenguins::core::neuron::model
                 {
                     Log::Enable(controlValues["logenable"].get<bool>());
                 }
+                if (controlValues.contains("run"))
+                {
+                    if (controlValues["run"].get<bool>())
+                    {
+                        if (controlValues.contains("configuration"))
+                        {
+                            string configuration = controlValues["configuration"].get<string>();
+                            runner_.RunWithNewModel(configuration);
+                        }
+                        else
+                        {
+                            runner_.RunWithExistingModel();
+                        }
+                    }
+                    else
+                    {
+                        runner_.Quit();
+                    }
+                }
+                if (controlValues.contains("pause"))
+                {
+                    if (controlValues["pause"].get<bool>())
+                        runner_.Pause();
+                    else
+                        runner_.Continue();
+                }
                 // Do more as they come up...
 
                 // Let the context capture what it knows about.
-                auto success = context_.SetValue(controlValues);
+                auto success = runner_.SetValue(controlValues);
 
-                json statusResponse = context_.Render();
-                statusResponse["recordenable"] = Recorder<RECORDTYPE>::Enabled();
-                statusResponse["logenable"] = Log::Enabled();
-
-                controlResponse["status"] = statusResponse;
+                controlResponse["status"] = BuildFullStatusElement();
                 controlResponse["result"] = success ? "ok" : "fail";
 
                 response["response"] = controlResponse;
@@ -221,6 +236,21 @@ namespace embeddedpenguins::core::neuron::model
             response["response"] = errorResponse;
 
             return response;
+        }
+
+        json BuildFullStatusElement()
+        {
+            json statusResponse = runner_.RenderStatus();
+
+            auto filename = runner_.ControlFile();
+            if (filename.length() > 5 && filename.substr(filename.length()-5, filename.length()) == ".json")
+                filename = filename.substr(0, filename.length()-5);
+            statusResponse["controlfile"] = filename;
+
+            statusResponse["recordenable"] = Recorder<RECORDTYPE>::Enabled();
+            statusResponse["logenable"] = Log::Enabled();
+
+            return statusResponse;
         }
     };
 }

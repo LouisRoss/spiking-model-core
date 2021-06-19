@@ -1,12 +1,14 @@
 #pragma once
 
 #include <string>
-#include <functional>
+#include <memory>
+
+#include "IQueryHandler.h"
 
 namespace embeddedpenguins::core::neuron::model
 {
     using std::string;
-    using std::function;
+    using std::unique_ptr;
 
     class ICommandControlAcceptor
     {
@@ -19,6 +21,6 @@ namespace embeddedpenguins::core::neuron::model
 
         virtual bool Initialize() = 0;
 
-        virtual bool AcceptAndExecute(function<void(const string&)> commandHandler) = 0;
+        virtual bool AcceptAndExecute(unique_ptr<IQueryHandler> const & queryHandler) = 0;
     };
 }

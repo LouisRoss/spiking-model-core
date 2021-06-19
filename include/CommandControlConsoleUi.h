@@ -6,6 +6,8 @@
 #include <tuple>
 #include <chrono>
 
+#include <nlohmann/json.hpp>
+
 #include "ICommandControlAcceptor.h"
 #include "KeyListener.h"
 
@@ -16,6 +18,8 @@ namespace embeddedpenguins::core::neuron::model
     using std::map;
     using std::tuple;
     using std::chrono::microseconds;
+
+    using nlohmann::json;
 
     template<class MODELRUNNERTYPE, class MODELHELPERTYPE>
     class CommandControlConsoleUi : public ICommandControlAcceptor
@@ -90,7 +94,7 @@ namespace embeddedpenguins::core::neuron::model
             return true;
         }
 
-        virtual bool AcceptAndExecute(function<void(const string&)> commandHandler) override
+        virtual bool AcceptAndExecute(unique_ptr<IQueryHandler> const & queryHandler) override
         {
             constexpr char KEY_UP = 'A';
             constexpr char KEY_DOWN = 'B';
@@ -138,7 +142,8 @@ namespace embeddedpenguins::core::neuron::model
                     {
                         auto newPeriod = modelRunner_.EnginePeriod() / 10;
                         if (newPeriod < microseconds(100)) newPeriod = microseconds(100);
-                        modelRunner_.EnginePeriod() = newPeriod;
+                        json periodQuery = { {"query","control"}, {"values", {{"engineperiod", newPeriod.count()}}} };
+                        queryHandler->HandleQuery(periodQuery.dump());
                         break;
                     }
 
@@ -146,7 +151,24 @@ namespace embeddedpenguins::core::neuron::model
                     {
                         auto newPeriod = modelRunner_.EnginePeriod() * 10;
                         if (newPeriod > microseconds(10'000'000)) newPeriod = microseconds(10'000'000);
-                        modelRunner_.EnginePeriod() = newPeriod;
+                        json periodQuery = { {"query","control"}, {"values", {{"engineperiod", newPeriod.count()}}} };
+                        queryHandler->HandleQuery(periodQuery.dump());
+                        break;
+                    }
+
+                    case 'p':
+                    case 'P':
+                    {
+                        json periodQuery = { {"query","control"}, {"values", {{"pause", true}}} };
+                        queryHandler->HandleQuery(periodQuery.dump());
+                        break;
+                    }
+
+                    case 'r':
+                    case 'R':
+                    {
+                        json periodQuery = { {"query","control"}, {"values", {{"pause", false}}} };
+                        queryHandler->HandleQuery(periodQuery.dump());
                         break;
                     }
 
