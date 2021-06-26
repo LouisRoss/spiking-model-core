@@ -184,7 +184,7 @@ namespace embeddedpenguins::core::neuron::model
                     os << "Cannot load library '" << sensorInputSharedLibraryPath_ << "': " << dlerror();
                     errorReason_ = os.str();
                 }
-                cout << "Cannot load library '" << sensorInputSharedLibraryPath_ << "': " << dlerror() << "\n";
+                cout << errorReason_ << "\n";
                 valid_ = false;
                 return;
             }
