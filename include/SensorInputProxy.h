@@ -201,7 +201,7 @@ namespace embeddedpenguins::core::neuron::model
                     os << "Cannot load symbol 'create': " << dlsym_error;
                     errorReason_ = os.str();
                 }
-                cout << "Cannot load symbol 'create': " << dlsym_error << "\n";
+                cout << errorReason_ << "\n";
                 valid_ = false;
                 return;
             }
@@ -218,7 +218,7 @@ namespace embeddedpenguins::core::neuron::model
                     os << "Cannot load symbol 'destroy': " << dlsym_error;
                     errorReason_ = os.str();
                 }
-                cout << "Cannot load symbol 'destroy': " << dlsym_error << "\n";
+                cout << errorReason_ << "\n";
                 valid_ = false;
                 return;
             }

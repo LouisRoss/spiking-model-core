@@ -174,10 +174,6 @@ namespace embeddedpenguins::core::neuron::model
             if (jsonQuery.contains("values"))
             {
                 auto& controlValues = jsonQuery["values"];
-                if (controlValues.contains("recordenable"))
-                {
-                    Recorder<RECORDTYPE>::Enable(controlValues["recordenable"].get<bool>());
-                }
                 if (controlValues.contains("logenable"))
                 {
                     Log::Enable(controlValues["logenable"].get<bool>());
@@ -247,7 +243,6 @@ namespace embeddedpenguins::core::neuron::model
                 filename = filename.substr(0, filename.length()-5);
             statusResponse["controlfile"] = filename;
 
-            statusResponse["recordenable"] = Recorder<RECORDTYPE>::Enabled();
             statusResponse["logenable"] = Log::Enabled();
 
             return statusResponse;

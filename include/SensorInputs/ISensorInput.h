@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include <ConfigurationRepository.h>
+
 namespace embeddedpenguins::core::neuron::model
 {
     using std::string;

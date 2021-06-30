@@ -23,7 +23,11 @@
     {
         "ModelExecutable": "./NeuronModel",
         "InitializerLocation": "./ModelLayerInitializer.so",
-        "InputStreamer": "./SensorInputSocket.so"
+        "InputStreamer": "./SensorInputSocket.so",
+        "OutputStreamers": [
+            "./SpikeOutputRecord.so",
+            "./SpikeOutputSocket.so"
+        ]
     },
     "PostProcessing":
     {

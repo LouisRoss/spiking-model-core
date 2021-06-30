@@ -7,6 +7,8 @@
 #include <map>
 #include <tuple>
 
+#include "ConfigurationRepository.h"
+
 namespace embeddedpenguins::core::neuron::model
 {
     using std::multimap;
@@ -33,28 +35,27 @@ namespace embeddedpenguins::core::neuron::model
         unsigned long long int& ticks_;
         multimap<unsigned long long int, tuple<time_point, RECORDTYPE>> records_;
 
-        static bool Enable(bool enable, bool readback)
+        static string& RecordFile()
         {
-            static bool enabled {true};
-
-            if (!readback) enabled = enable;
-            return enabled;
+            static string recordFile;
+            return recordFile;
         }
 
     public:
-        static const bool Enabled() { return Enable(true, true); }
-        static void Enable(const bool enable) { Enable(enable, false); }
-
-    public:
-        Recorder(unsigned long long int& ticks) :
+        Recorder(unsigned long long int& ticks, const ConfigurationRepository& configuration) :
             ticks_(ticks)
         {
+            RecordFile() = configuration.ComposeRecordPath();
+
+            ofstream recordfile;
+            recordfile.open(RecordFile(), std::ofstream::out | std::ofstream::trunc);
+
+            recordfile << "tick,time," << RECORDTYPE::Header() << "\n";
         }
 
         void Record(const RECORDTYPE& record)
         {
-            if (Enabled())
-                records_.insert(pair<unsigned long long int, tuple<time_point, RECORDTYPE>>(ticks_, make_tuple(Clock::now(), record)));
+            records_.insert(pair<unsigned long long int, tuple<time_point, RECORDTYPE>>(ticks_, make_tuple(Clock::now(), record)));
         }
 
         static multimap<unsigned long long int, tuple<time_point, RECORDTYPE>>& MergedRecords()
@@ -68,12 +69,10 @@ namespace embeddedpenguins::core::neuron::model
             MergedRecords().insert(begin(other.records_), end(other.records_));
         }
 
-        static void Print(const char* file)
+        static void Print()
         {
             ofstream recordfile;
-            recordfile.open(file);
-
-            recordfile << "tick,time," << RECORDTYPE::Header() << "\n";
+            recordfile.open(RecordFile(), std::ofstream::out | std::ofstream::app);
 
             for (auto& record : MergedRecords())
             {
@@ -96,6 +95,8 @@ namespace embeddedpenguins::core::neuron::model
                     << std::get<1>(record.second).Format()
                     << "\n";
             }
+
+            MergedRecords().clear();
         }
     };
 }
