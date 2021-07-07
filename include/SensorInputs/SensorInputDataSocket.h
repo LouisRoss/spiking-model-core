@@ -13,6 +13,7 @@
 #include "libsocket/inetserverstream.hpp"
 
 #include "IQueryHandler.h"
+#include "SpikeSignalProtocol.h"
 
 namespace embeddedpenguins::core::neuron::model
 {
@@ -30,15 +31,7 @@ namespace embeddedpenguins::core::neuron::model
 
     class SensorInputDataSocket
     {
-        struct InputSpike
-        {
-            int Tick;
-            unsigned long long int NeuronIndex;
-        };
-
         unique_ptr<inet_stream> streamSocket_;
-
-        string query_ { };
 
     public:
         inet_stream* StreamSocket() const { return streamSocket_.get(); }
@@ -64,65 +57,53 @@ namespace embeddedpenguins::core::neuron::model
             cout << "SensorInputDataSocket dtor \n";
             streamSocket_->shutdown(LIBSOCKET_READ | LIBSOCKET_WRITE);
         }
-
-        //
-        // The main operation.  If this socket becomes readable, call this method.
-        // We read the query from the command and control client and process it.
-        // If the read is empty, assume the socket was closed by the client.
-        // Return true unless the client closed the socket and we need to clean up this end.
-        //
+        
         bool HandleInput(function<void(const multimap<int, unsigned long long int>&)> injectCallback)
         {
-            string queryFragment;
-            queryFragment.resize(1000);
-            *streamSocket_ >> queryFragment;
-
-            if (queryFragment.empty()) return false;
-
-            BuildInputString(queryFragment);
-            cout << "Sensor input received '" << query_ << "'\n";
-
-            multimap<int, unsigned long long int> data;
+            cout << "SensorInputDataSocket::HandleInput\n";
+            // First field is the count of structs following, not the byte count.
+            SpikeSignalLengthFieldType bufferCount {};
             try
             {
-                json dataStream = json::parse(query_);
+                auto received = streamSocket_->rcv((void*)&bufferCount, sizeof(bufferCount));
 
-                const auto& signal = dataStream.get<vector<vector<int>>>();
-                for (auto& signalElement : signal)
+                if (received != sizeof(bufferCount))
                 {
-                    cout << "  Sensor input signaling index " << signalElement[1] << " at time " << signalElement[0] << "\n";
-                    std::pair<int, int> element(signalElement[0], signalElement[1]);
-                    data.insert(element);
+                    cout << "SensorInputDataSocket::HandleInput received incorrect count field of size " << received << "\n";
+                    return false;
                 }
+
+                cout << "SensorInputSocket::HandleInput received count field of " << received << " bytes = " << bufferCount << " structs of size " << SpikeSignalSize << " (" << sizeof(SpikeSignal::Tick) << " + " << sizeof(SpikeSignal::NeuronIndex) << ")\n";
             }
-            catch (json::exception ex)
+            catch(const libsocket::socket_exception& e)
             {
-                cout << "HandleInput failed to parse data string '" << query_ << "'\n";
+                cout << "SensorInputSocket::HandleInput received exception reading count field: " << e.mesg << "\n";
                 return false;
+            }
+            
+
+            SpikeSignalProtocol protocol {};
+            auto received = streamSocket_->rcv((void*)protocol.SpikeBuffer, protocol.GetBufferSize(bufferCount));
+
+            if (received != protocol.GetBufferSize(bufferCount))
+            {
+                cout << "SensorInputDataSocket::HandleInput received incorrect buffer length " << received << "\n";
+                return false;
+            }
+
+            multimap<int, unsigned long long int> data;
+            for (SpikeSignalLengthFieldType index = 0; index < bufferCount; index++)
+            {
+                auto& signalSpike = protocol.SpikeBuffer[index];
+
+                cout << "  Sensor input signaling index " << signalSpike.NeuronIndex << " at time " << signalSpike.Tick << "\n";
+                std::pair<int, int> element(signalSpike.Tick, signalSpike.NeuronIndex);
+                data.insert(element);
             }
 
             injectCallback(data);
 
             return true;
-        }
-
-        void BuildInputString(string& queryFragment)
-        {
-            query_.clear();
-
-            do
-            {
-                query_ += queryFragment;
-
-                if (queryFragment.size() == 1000)
-                {
-                    queryFragment.clear();
-                    queryFragment.resize(1000);
-                    *streamSocket_ >> queryFragment;
-
-                    if (!queryFragment.empty()) query_ += queryFragment;
-                }
-            } while (queryFragment.size() == 1000);
         }
     };
 }

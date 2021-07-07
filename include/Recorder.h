@@ -67,6 +67,7 @@ namespace embeddedpenguins::core::neuron::model
         static void Merge(Recorder& other)
         {
             MergedRecords().insert(begin(other.records_), end(other.records_));
+            other.records_.clear();
         }
 
         static void Print()
