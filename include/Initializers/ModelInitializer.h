@@ -1,29 +1,30 @@
 #pragma once
 
+#include "IModelHelper.h"
 #include "IModelInitializer.h"
 
 namespace embeddedpenguins::modelengine::sdk
 {
+    using embeddedpenguins::core::neuron::model::IModelHelper;
     using embeddedpenguins::core::neuron::model::IModelInitializer;
 
     //
     // Base class for all model initializers.  Since an initializer
     // must reference the configuration, a reference to it is captured here.
     //
-    template<class MODELHELPERTYPE>
-    class ModelInitializer : public IModelInitializer<MODELHELPERTYPE>
+    class ModelInitializer : public IModelInitializer
     {
     protected:
-        MODELHELPERTYPE& helper_;
+        IModelHelper* helper_;
 
     public:
-        ModelInitializer(MODELHELPERTYPE& helper) :
+        ModelInitializer(IModelHelper* helper) :
             helper_(helper)
         {
         }
 
     public:
         // IModelInitializer interface, must be implemented, but not used if not a proxy class.
-        virtual void CreateProxy(MODELHELPERTYPE& helper) override { }
+        virtual void CreateProxy(IModelHelper* helper) override { }
     };
 }

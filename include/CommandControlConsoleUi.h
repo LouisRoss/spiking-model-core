@@ -9,6 +9,7 @@
 #include <nlohmann/json.hpp>
 
 #include "ICommandControlAcceptor.h"
+#include "IModelHelper.h"
 #include "KeyListener.h"
 
 namespace embeddedpenguins::core::neuron::model
@@ -21,7 +22,7 @@ namespace embeddedpenguins::core::neuron::model
 
     using nlohmann::json;
 
-    template<class MODELRUNNERTYPE, class MODELHELPERTYPE>
+    template<class MODELRUNNERTYPE>
     class CommandControlConsoleUi : public ICommandControlAcceptor
     {
         bool displayOn_ { true };
@@ -39,7 +40,7 @@ namespace embeddedpenguins::core::neuron::model
 
     protected:
         MODELRUNNERTYPE& modelRunner_;
-        MODELHELPERTYPE& helper_;
+        IModelHelper* helper_;
 
     public:
         CommandControlConsoleUi(MODELRUNNERTYPE& modelRunner) :
@@ -80,8 +81,8 @@ namespace embeddedpenguins::core::neuron::model
 
         virtual bool Initialize() override
         {
-            width_ = helper_.Width();
-            height_ = helper_.Height();
+            width_ = helper_->Width();
+            height_ = helper_->Height();
 
             if (windowWidth_ > width_) windowWidth_ = width_;
             if (windowHeight_ > height_) windowHeight_ = height_;
@@ -227,7 +228,7 @@ namespace embeddedpenguins::core::neuron::model
                 cout << '\n';
 
                 neuronIndex += width_ - windowWidth_;
-                if (neuronIndex > helper_.Carrier().ModelSize()) neuronIndex = 0;
+                if (neuronIndex > modelRunner_.Carrier().ModelSize()) neuronIndex = 0;
             }
 
             cout
@@ -247,20 +248,20 @@ namespace embeddedpenguins::core::neuron::model
             for (auto& [neuronName, posTuple] : namedNeurons_)
             {
                 auto& [ypos, xpos] = posTuple;
-                auto neuronIndex = helper_.GetIndex(ypos, xpos);
-                auto neuronActivation = helper_.GetNeuronActivation(neuronIndex);
-                auto neuronTicksSinceLastSpike = helper_.GetNeuronTicksSinceLastSpike(neuronIndex);
+                auto neuronIndex = helper_->GetIndex(ypos, xpos);
+                auto neuronActivation = helper_->GetNeuronActivation(neuronIndex);
+                auto neuronTicksSinceLastSpike = helper_->GetNeuronTicksSinceLastSpike(neuronIndex);
                 cout << "Neuron " << std::setw(15) << neuronName << " [" << ypos << ", " << xpos << "] = " << std::setw(4) << neuronIndex << ": ";
                 cout << std::setw(5) << neuronActivation << "(" << std::setw(3) << neuronTicksSinceLastSpike << ")";
                 cout << std::endl;
 
                 for (auto synapseId = 0; synapseId < SynapticConnectionsPerNode; synapseId++)
                 {
-                    if (helper_.IsSynapseUsed(neuronIndex, synapseId))
+                    if (helper_->IsSynapseUsed(neuronIndex, synapseId))
                     {
-                        auto presynapticNeuronIndex = helper_.GetPresynapticNeuron(neuronIndex, synapseId);
+                        auto presynapticNeuronIndex = helper_->GetPresynapticNeuron(neuronIndex, synapseId);
                         cout << std::setw(20) << presynapticNeuronIndex
-                        << "(" << std::setw(3) << helper_.GetSynapticStrength(neuronIndex, synapseId) << ")  ";
+                        << "(" << std::setw(3) << helper_->GetSynapticStrength(neuronIndex, synapseId) << ")  ";
                     }
                 }
 

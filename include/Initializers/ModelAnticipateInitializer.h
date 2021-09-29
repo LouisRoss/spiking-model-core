@@ -1,5 +1,6 @@
 #pragma once
 
+#include "IModelHelper.h"
 #include "ModelNeuronInitializer.h"
 
 namespace embeddedpenguins::core::neuron::model
@@ -9,12 +10,11 @@ namespace embeddedpenguins::core::neuron::model
     // the 'anticipate' test, which demonstrates STDP over repeated
     // spikes.
     //
-    template<class MODELHELPERTYPE>
-    class ModelAnticipateInitializer : public ModelNeuronInitializer<MODELHELPERTYPE>
+    class ModelAnticipateInitializer : public ModelNeuronInitializer
     {
     public:
-        ModelAnticipateInitializer(MODELHELPERTYPE& helper) :
-            ModelNeuronInitializer<MODELHELPERTYPE>(helper)
+        ModelAnticipateInitializer(IModelHelper* helper) :
+            ModelNeuronInitializer(helper)
         {
         }
 
@@ -22,7 +22,7 @@ namespace embeddedpenguins::core::neuron::model
         // IModelInitializer implementaton
         virtual void Initialize() override
         {
-            this->helper_.InitializeModel();
+            this->helper_->InitializeModel();
 
             const Neuron2Dim I1 { this->ResolveNeuron("I1") };
             const Neuron2Dim I2 { this->ResolveNeuron("I2") };

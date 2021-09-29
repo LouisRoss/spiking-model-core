@@ -14,6 +14,12 @@ namespace embeddedpenguins::core::neuron::model
         Refractory
     };
 
+    enum class NeuronType : char
+    {
+        Excitatory,
+        Inhibitory
+    };
+
     struct NeuronRecordConnection
     {
         unsigned long long int NeuronIndex { };

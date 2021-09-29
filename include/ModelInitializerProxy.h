@@ -8,6 +8,7 @@
 #include "nlohmann/json.hpp"
 
 #include "ConfigurationRepository.h"
+#include "IModelHelper.h"
 #include "Initializers/IModelInitializer.h"
 
 namespace embeddedpenguins::core::neuron::model
@@ -24,11 +25,10 @@ namespace embeddedpenguins::core::neuron::model
     // the IModelInitializer<> interface, plus two C-style methods to create and destroy
     // instances of its class on the heap.
     //
-    template<class MODELHELPERTYPE>
-    class ModelInitializerProxy : IModelInitializer<MODELHELPERTYPE>
+    class ModelInitializerProxy : IModelInitializer
     {
-        using InitializerCreator = IModelInitializer<MODELHELPERTYPE>* (*)(MODELHELPERTYPE& helper);
-        using InitializerDeleter = void (*)(IModelInitializer<MODELHELPERTYPE>*);
+        using InitializerCreator = IModelInitializer* (*)(IModelHelper* helper);
+        using InitializerDeleter = void (*)(IModelInitializer*);
 
         const string initializerSharedLibraryPath_ {};
 
@@ -36,7 +36,7 @@ namespace embeddedpenguins::core::neuron::model
         void* initializerLibrary_ {};
         InitializerCreator createInitializer_ {};
         InitializerDeleter deleteInitializer_ {};
-        IModelInitializer<MODELHELPERTYPE>* initializer_ {};
+        IModelInitializer* initializer_ {};
 
     public:
         //
@@ -60,7 +60,7 @@ namespace embeddedpenguins::core::neuron::model
 
     public:
         // IModelInitializer implementaton
-        virtual void CreateProxy(MODELHELPERTYPE& helper) override
+        virtual void CreateProxy(IModelHelper* helper) override
         {
             LoadInitializer();
             if (createInitializer_ != nullptr)

@@ -10,6 +10,7 @@
 #include "nlohmann/json.hpp"
 
 #include "ConfigurationRepository.h"
+#include "IModelHelper.h"
 #include "IModelInitializer.h"
 
 namespace embeddedpenguins::core::neuron::model
@@ -33,20 +34,19 @@ namespace embeddedpenguins::core::neuron::model
     //
     // Intermediate base class for models implementing neuron dynamics.
     //
-    template<class MODELHELPERTYPE>
-    class ModelNeuronInitializer : public IModelInitializer<MODELHELPERTYPE>
+    class ModelNeuronInitializer : public IModelInitializer
     {
     protected:
-        MODELHELPERTYPE& helper_;
+        IModelHelper* helper_;
 
         int strength_ { 21 };
 
         map<string, tuple<int, int>> namedNeurons_ { };
 
-        const json& Configuration() const { return helper_.Configuration(); }
+        const json& Configuration() const { return helper_->Configuration(); }
 
     public:
-        ModelNeuronInitializer(MODELHELPERTYPE& helper) :
+        ModelNeuronInitializer(IModelHelper* helper) :
             helper_(helper)
         {
             LoadOptionalNamedNeurons();
@@ -54,13 +54,13 @@ namespace embeddedpenguins::core::neuron::model
 
     public:
         // IModelInitializer implementaton
-        virtual void CreateProxy(MODELHELPERTYPE& helper) override { }
+        virtual void CreateProxy(IModelHelper* helper) override { }
 
     protected:
         void InitializeAnInput(int row, int column)
         {
-            auto sourceIndex = helper_.GetIndex(row, column);
-            this->helper_.WireInput(sourceIndex, strength_);
+            auto sourceIndex = helper_->GetIndex(row, column);
+            this->helper_->WireInput(sourceIndex, strength_);
         }
 
         void InitializeAnInput(const Neuron2Dim& neuron)
@@ -70,9 +70,9 @@ namespace embeddedpenguins::core::neuron::model
 
         void InitializeAConnection(const int row, const int column, const int destRow, const int destCol)
         {
-            auto sourceIndex = helper_.GetIndex(row, column);
-            auto destinationIndex = helper_.GetIndex(destRow, destCol);
-            this->helper_.Wire(sourceIndex, destinationIndex, strength_);
+            auto sourceIndex = helper_->GetIndex(row, column);
+            auto destinationIndex = helper_->GetIndex(destRow, destCol);
+            this->helper_->Wire(sourceIndex, destinationIndex, strength_);
         }
 
         void InitializeAConnection(const Neuron2Dim& source, const Neuron2Dim& destination)
@@ -82,27 +82,27 @@ namespace embeddedpenguins::core::neuron::model
 
         unsigned long long int GetIndex(const Neuron2Dim& source)
         {
-            return helper_.GetIndex(source.Row, source.Column);
+            return helper_->GetIndex(source.Row, source.Column);
         }
 
         void SetExcitatoryNeuronType(const unsigned long long int source)
         {
-            this->helper_.SetExcitatoryNeuronType(source);
+            this->helper_->SetExcitatoryNeuronType(source);
         }
 
         void SetExcitatoryNeuronType(const Neuron2Dim& source)
         {
-            SetExcitatoryNeuronType(GetIndex(source.Row, source.Column));
+            SetExcitatoryNeuronType(helper_->GetIndex(source.Row, source.Column));
         }
 
         void SetInhibitoryNeuronType(const unsigned long long int source)
         {
-            this->helper_.SetInhibitoryNeuronType(source);
+            this->helper_->SetInhibitoryNeuronType(source);
         }
 
         void SetInhibitoryNeuronType(const Neuron2Dim& source)
         {
-            SetInhibitoryNeuronType(helper_.GetIndex(source.Row, source.Column));
+            SetInhibitoryNeuronType(helper_->GetIndex(source.Row, source.Column));
         }
 
         const Neuron2Dim ResolveNeuron(const string& neuronName) const
