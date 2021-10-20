@@ -14,12 +14,15 @@ namespace embeddedpenguins::core::neuron::model
     using std::cout;
     using std::string;
     using std::ifstream;
+    using std::filesystem::exists;
     using std::filesystem::create_directories;
 
     using nlohmann::json;
     
     class ConfigurationRepository
     {
+        string stackConfigurationPath_ { "/configuration/configuration.json" };
+
         bool valid_ { false };
         string configurationPath_ {};
         string settingsFile_ { "./ModelSettings.json" };
@@ -27,6 +30,7 @@ namespace embeddedpenguins::core::neuron::model
         string configFile_ {};
         string monitorFile_ {};
     protected:
+        json stackConfiguration_ {};
         json configuration_ {};
         json control_ {};
         json monitor_ {};
@@ -35,6 +39,7 @@ namespace embeddedpenguins::core::neuron::model
     public:
         const bool Valid() const { return valid_; }
         const json& Control() const { return control_; }
+        const json& StackConfiguration() const { return stackConfiguration_; }
         const json& Configuration() const { return configuration_; }
         const json& Monitor() const { return monitor_; }
         const json& Settings() const { return settings_; }
@@ -61,6 +66,8 @@ namespace embeddedpenguins::core::neuron::model
         {
             controlFile_ = controlFile;
             valid_ = true;
+
+            LoadStackConfiguration();
 
             LoadSettings();
 
@@ -123,6 +130,35 @@ namespace embeddedpenguins::core::neuron::model
         }
 
     private:
+        //
+        // All services in the stack can access the same configuration at the root of the filesystem: /configuration/configuration.json.
+        // Load that file into a json object.
+        //
+        void LoadStackConfiguration()
+        {
+            if (settingsFile_.length() < 5 || settingsFile_.substr(settingsFile_.length()-5, settingsFile_.length()) != ".json")
+                settingsFile_ += ".json";
+
+            if (!exists(stackConfigurationPath_))
+            {
+                cout << "Settings file " << stackConfigurationPath_ << " does not exist\n";
+                valid_ = false;
+                return;
+            }
+
+            cout << "LoadStackConfiguration from " << stackConfigurationPath_ << "\n";
+            try
+            {
+                ifstream stackConfig(stackConfigurationPath_);
+                stackConfig >> stackConfiguration_;
+            }
+            catch(const json::parse_error& e)
+            {
+                std::cerr << "Unable to read stack configuration file " << stackConfigurationPath_ << ": " << e.what() << '\n';
+                valid_ = false;
+            }
+        }
+
         //
         // Load the settings from the JSON file speicified by the settingsFile_
         // field into the settings_ field.  As a side effect, also load the 'ConfigFilePath'

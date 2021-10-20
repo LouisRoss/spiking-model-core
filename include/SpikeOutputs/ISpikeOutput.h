@@ -1,15 +1,17 @@
 #pragma once
 
-#include <string>
 #include <vector>
+
+#include "nlohmann/json.hpp"
 
 #include "NeuronRecordCommon.h"
 #include "ModelEngineContext.h"
 
 namespace embeddedpenguins::core::neuron::model
 {
-    using std::string;
     using std::vector;
+
+    using nlohmann::json;
 
     using embeddedpenguins::gpu::neuron::model::ModelEngineContext;
 
@@ -28,7 +30,7 @@ namespace embeddedpenguins::core::neuron::model
         virtual ~ISpikeOutput() = default;
 
         virtual void CreateProxy(ModelEngineContext& context) = 0;
-        virtual bool Connect(const string& connectionString) = 0;
+        virtual bool Connect() = 0;
         virtual bool Disconnect() = 0;
         virtual bool IsInterestedIn(NeuronRecordType type) { return true; }
         virtual void StreamOutput(unsigned long long neuronIndex, short int activation, NeuronRecordType type) = 0;

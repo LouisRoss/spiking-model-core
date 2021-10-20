@@ -43,7 +43,7 @@ namespace embeddedpenguins::core::neuron::model
         // ISpikeOutput implementaton
         virtual void CreateProxy(ModelEngineContext& context) override { }
 
-        virtual bool Connect(const string& connectionString) override
+        virtual bool Connect() override
         {
             return true;
         }

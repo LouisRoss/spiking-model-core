@@ -26,6 +26,9 @@ namespace embeddedpenguins::core::neuron::model
     public:
         virtual ~IModelHelper() = default;
         virtual const json& Configuration() const = 0;
+        virtual const json& StackConfiguration() const = 0;
+        virtual const unsigned long int NeuronCount() const = 0;
+        virtual const unsigned int ExpansionCount() const = 0;
         virtual const unsigned int Width() const = 0;
         virtual const unsigned int Height() const= 0;
         virtual bool AllocateModel(unsigned long int modelSize = 0) = 0;

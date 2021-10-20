@@ -81,6 +81,8 @@ namespace embeddedpenguins::core::neuron::model
                 return false;
             }
             
+            // There is nothing following if the field count is zero.
+            if (bufferCount == 0) return true;
 
             SpikeSignalProtocol protocol {};
             auto received = streamSocket_->rcv((void*)protocol.SpikeBuffer, protocol.GetBufferSize(bufferCount));

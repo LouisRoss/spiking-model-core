@@ -52,23 +52,27 @@ namespace embeddedpenguins::core::neuron::model
         virtual void CreateProxy(ModelEngineContext& context) override { }
 
         //
-        // Interpret the connection string as a hostname and port number
-        // to connect to.  The two fields are separated by a ':' character.
         //
-        virtual bool Connect(const string& connectionString) override
+        virtual bool Connect() override
         {
-            auto [host, port] = ParseConnectionString(connectionString);
-            try
+            bool connected { false };
+
+            auto [connectionString, service] = GetConnectionStrings();
+
+            if (!connected && !service.empty())
             {
-                cout << "SpikeOutputSocket Connect() connecting to " << host << ":" << port << "\n";
-                streamSocket_ = make_unique<inet_stream>(host, port, LIBSOCKET_IPv4);
-            } catch (const socket_exception& exc)
-            {
-                cout << "SpikeOutputSocket Connect() caught exception: " << exc.mesg;
-                return false;
+                auto [serviceName, portType] = ParseConnectionString(service, "", "");
+                auto [host, port] = GetServiceConnection(serviceName, portType);
+                connected = TryConnect(host, port);
             }
 
-            return true;
+            if (!connected && !connectionString.empty())
+            {
+                auto [host, port] = ParseConnectionString(connectionString, "localhost", "8001");
+                connected = TryConnect(host, port);
+            }
+
+            return connected;
         }
 
         virtual bool Disconnect() override
@@ -135,10 +139,25 @@ namespace embeddedpenguins::core::neuron::model
         }
 
     private:
-        tuple<string, string> ParseConnectionString(const string& connectionString)
+        bool TryConnect(const string& host, const string& port)
         {
-            string host {"localhost"};
-            string port {"8001"};
+            try
+            {
+                cout << "SpikeOutputSocket Connect() connecting to " << host << ":" << port << "\n";
+                streamSocket_ = make_unique<inet_stream>(host, port, LIBSOCKET_IPv4);
+            } catch (const socket_exception& exc)
+            {
+                cout << "SpikeOutputSocket Connect() caught exception: " << exc.mesg;
+                return false;
+            }
+
+            return true;
+        }
+
+        tuple<string, string> ParseConnectionString(const string& connectionString, const string& defaultHost, const string& defaultPort)
+        {
+            string host {defaultHost};
+            string port {defaultPort};
 
             auto colonPos = connectionString.find(":");
             if (colonPos != string::npos)
@@ -150,6 +169,102 @@ namespace embeddedpenguins::core::neuron::model
             }
 
             return {host, port};
+        }
+
+        tuple<string, string> GetServiceConnection(const string& serviceName, const string& portType)
+        {
+            string hostName;
+            string port;
+
+            if (!context_.Configuration.StackConfiguration().contains("services"))
+            {
+                cout << "Stack configuration contains no 'services' element, not creating output streamer\n";
+                return {hostName, port};
+            }
+            cout << "Found 'services' section of stack configuration\n";
+
+            const json& servicesJson = context_.Configuration.StackConfiguration()["services"];
+            if (!servicesJson.contains(serviceName))
+            {
+                cout << "Stack configuration 'services' element contains no '" << serviceName << "' subelement, not creating output streamer\n";
+                return {hostName, port};
+            }
+            cout << "Found '" << serviceName << "' subsection of 'services' section of stack configuration\n";
+
+            const json& serviceJson = servicesJson[serviceName.c_str()];
+            if (serviceJson.contains("host"))
+            {
+                hostName = serviceJson["host"];
+            }
+
+            if (serviceJson.contains(portType))
+            {
+                port = serviceJson[portType.c_str()];
+            }
+
+            return {hostName, port};
+        }
+
+        //
+        // Find the two allowed strings, and return the tuple <'ConnectionString', 'Service'>.
+        // Either or both may be empty strings if not present in configuration.
+        //
+        tuple<string, string> GetConnectionStrings()
+        {
+            string connectionString;
+            string service;
+
+            if (!context_.Configuration.Configuration().contains("Execution"))
+            {
+                cout << "Configuration contains no 'Execution' element, not creating output streamer\n";
+                return {connectionString, service};
+            }
+
+            const json& executionJson = context_.Configuration.Configuration()["Execution"];
+            if (!executionJson.contains("OutputStreamers"))
+            {
+                cout << "Configuration 'Execution' element contains no 'OutputStreamers' subelement, not creating output streamer\n";
+                return {connectionString, service};
+            }
+
+            const json& outputStreamersJson = executionJson["OutputStreamers"];
+            if (outputStreamersJson.is_array())
+            {
+                for (auto& [key, outputStreamerJson] : outputStreamersJson.items())
+                {
+                    if (outputStreamerJson.is_object())
+                    {
+                        string outputStreamerLocation { "" };
+                        if (outputStreamerJson.contains("Location"))
+                        {
+                            const json& locationJson = outputStreamerJson["Location"];
+                            if (locationJson.is_string())
+                            {
+                                outputStreamerLocation = locationJson.get<string>();
+                            }
+                        }
+
+                        if (outputStreamerLocation.find("SpikeOutputSocket") != string::npos)
+                        {
+                            if (outputStreamerJson.contains("ConnectionString"))
+                            {
+                                const json& connectionStringJson = outputStreamerJson["ConnectionString"];
+                                if (connectionStringJson.is_string())
+                                    connectionString = connectionStringJson.get<string>();
+                            }
+
+                            if (outputStreamerJson.contains("Service"))
+                            {
+                                const json& serviceJson = outputStreamerJson["Service"];
+                                if (serviceJson.is_string())
+                                    service = serviceJson.get<string>();
+                            }
+                        }
+                    }
+                }
+            }
+
+            return {connectionString, service};
         }
     };
 }
