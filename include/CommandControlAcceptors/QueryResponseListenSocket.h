@@ -13,14 +13,14 @@
 #include "libsocket/socket.hpp"
 
 
-#include "ConfigurationRepository.h"
-#include "SensorInputDataSocket.h"
+#include "ICommandControlAcceptor.h"
+#include "QueryResponseSocket.h"
+#include "IQueryHandler.h"
 
 namespace embeddedpenguins::core::neuron::model
 {
     using std::cout;
     using std::map;
-    using std::multimap;
     using std::string;
     using std::unique_ptr;
     using std::make_unique;
@@ -33,43 +33,47 @@ namespace embeddedpenguins::core::neuron::model
     using libsocket::inet_stream_server;
     using libsocket::selectset;
 
-    class SensorInputListenSocket
+    class QueryResponseListenSocket : public ICommandControlAcceptor
     {
-        inet_stream_server server_ { };
-        const ConfigurationRepository& configuration_;
-
+        inet_stream_server server_;
         unique_ptr<selectset<socket>> selectSet_ { };
 
-        map<socket*, unique_ptr<SensorInputDataSocket>> ccSockets_ { };
-
-        multimap<int, unsigned long long int> signalToInject_ { };
-        function<void(const multimap<int, unsigned long long int>&)> InjectCallback_;
+        map<socket*, unique_ptr<QueryResponseSocket>> ccSockets_ { };
 
     public:
-        SensorInputListenSocket(const string& host, const string& port, const ConfigurationRepository& configuration, function<void(const multimap<int, unsigned long long int>&)> injectCallback) :
-            server_(host, port, LIBSOCKET_IPv4),
-            configuration_(configuration),
-            InjectCallback_(injectCallback)
+        QueryResponseListenSocket(const string& host, const string& port) :
+            server_(host, port, LIBSOCKET_IPv4)
         {
             // Louis Ross - I modified libsocket to always apply SO_REUSEADDR=1 just before a server socket binds.
-            cout << "SensorInputListenSocket with fd=" << server_.getfd() << " listening at " << host << ":" << port << "\n";
+            cout << "QueryResponseListenSocket with fd=" << server_.getfd() << " listening at " << host << ":" << port << "\n";
         }
 
-        SensorInputListenSocket(const SensorInputListenSocket& other) = delete;
-        SensorInputListenSocket& operator=(const SensorInputListenSocket& other) = delete;
-        SensorInputListenSocket(SensorInputListenSocket&& other) noexcept = delete;
-        SensorInputListenSocket& operator=(SensorInputListenSocket&& other) noexcept = delete;
+        QueryResponseListenSocket(const QueryResponseListenSocket& other) = delete;
+        QueryResponseListenSocket& operator=(const QueryResponseListenSocket& other) = delete;
+        QueryResponseListenSocket(QueryResponseListenSocket&& other) noexcept = delete;
+        QueryResponseListenSocket& operator=(QueryResponseListenSocket&& other) noexcept = delete;
 
-        virtual ~SensorInputListenSocket()
+        virtual ~QueryResponseListenSocket()
         {
-            cout << "SensorInputListenSocket dtor\n";
+            cout << "QueryResponseListenSocket dtor\n";
             server_.destroy();
         }
 
-        bool Initialize()
+        virtual const string& Description() override
+        {
+            static string description { "Listen Socket" };
+            return description;
+        }
+
+        virtual bool ParseArguments(int argc, char* argv[]) override
+        {
+            // No arguments used in this acceptor.
+            return true;
+        }
+
+        virtual bool Initialize() override
         {
             MakeSelectSet();
-            cout << "SensorInputListenSocket Initialize\n";
             return true;
         }
 
@@ -79,7 +83,7 @@ namespace embeddedpenguins::core::neuron::model
         // to be readable, then handle all that are.
         // Use dynamic_cast to distinguish between socket types.
         //
-        bool Process()
+        virtual bool AcceptAndExecute(unique_ptr<IQueryHandler> const & queryHandler) override
         {
             auto [readSockets, _] = selectSet_->wait(10'000);
 
@@ -91,7 +95,14 @@ namespace embeddedpenguins::core::neuron::model
 
                 inet_stream* dataSocket = dynamic_cast<inet_stream*>(readSocket);
                 if (dataSocket != nullptr)
-                    HandleInput(readSocket, dataSocket);
+                    HandleInput(readSocket, dataSocket, queryHandler);
+            }
+
+            for (auto& [readSocket, responseSocket] : ccSockets_)
+            {
+                inet_stream* dataSocket = dynamic_cast<inet_stream*>(readSocket);
+                if (dataSocket != nullptr)
+                    responseSocket->DoPeriodicSupport(queryHandler);
             }
 
             return false;
@@ -102,22 +113,22 @@ namespace embeddedpenguins::core::neuron::model
         {
             if (ccSockets_.find(readSocket) == end(ccSockets_))
             {
-                cout << "SensorInputListenSocket found readable socket is listen socket, creating new connection\n";
-                auto dataSocket = make_unique<SensorInputDataSocket>(listenSocket);
+                cout << "QueryResponseListenSocket found readable socket is listen socket, creating new connection\n";
+                auto dataSocket = make_unique<QueryResponseSocket>(listenSocket);
                 ccSockets_[dataSocket->StreamSocket()] = std::move(dataSocket);
                 MakeSelectSet();
             }
         }
 
-        void HandleInput(socket* readSocket, inet_stream* dataSocket)
+        void HandleInput(socket* readSocket, inet_stream* dataSocket, unique_ptr<IQueryHandler> const & queryHandler)
         {
-            cout << "SensorInputListenSocket found readable data socket, handling request\n";
+            cout << "QueryResponseListenSocket found readable data socket, handling request\n";
             auto iSocket = ccSockets_.find(readSocket);
             if (iSocket != end(ccSockets_))
             {
-                if (!iSocket->second->HandleInput(InjectCallback_))
+                if (!iSocket->second->HandleInput(queryHandler))
                 {
-                    cout << "SensorInputListenSocket: readable data socket closed by client\n";
+                    cout << "QueryResponseListenSocket: readable data socket closed by client\n";
                     ccSockets_.erase(iSocket);
                     MakeSelectSet();
                 }

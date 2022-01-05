@@ -18,9 +18,29 @@ namespace embeddedpenguins::core::neuron::model
 
     public:
         // IModelInitializer implementaton
-        virtual void Initialize() override
+        virtual bool Initialize() override
         {
-            cout << "ModelPackageInitializer::Initialize()\n";
+            const string& modelName { this->helper_->ModelName() };
+            const string& deploymentName { this->helper_->DeploymentName() };
+            const string& engineName { this->helper_->EngineName() };
+
+            if (modelName.empty())
+            {
+                cout << "ModelPackageInitializer::Initialize can find no model, not initializing\n";
+                return false;
+            }
+
+            cout << "ModelPackageInitializer::Initialize model '" << modelName << "' depoyment '" << deploymentName << "' engine '" << engineName << "'\n";
+            PackageInitializerDataSocket socket(this->helper_->StackConfiguration());
+
+            protocol::ModelDeploymentRequest deploymentRequest(modelName, deploymentName, engineName);
+
+            auto response = socket.TransactWithServer<protocol::ModelDeploymentRequest, protocol::ModelDeploymentResponse>(deploymentRequest);
+            auto* deploymentResponse = reinterpret_cast<protocol::ModelDeploymentResponse*>(response.get());
+
+            cout << "ModelPackageHelper retrieved model size from packager of " << deploymentResponse->NeuronCount << " neurons and " << deploymentResponse->PopulationCount << " populations\n";
+
+            this->helper_->AllocateModel(deploymentResponse->NeuronCount);
             this->helper_->InitializeModel();
 
             this->strength_ = 101;
@@ -30,21 +50,22 @@ namespace embeddedpenguins::core::neuron::model
             this->InitializeAnInput(0, 4);
             this->InitializeAnInput(0, 5);
 
-            // TODO - develop the model name from somewhere!
-            string modelName { "layer" };
-
-            PackageInitializerDataSocket socket(this->helper_->StackConfiguration());
-
-            for (auto i = 0; i < this->helper_->ExpansionCount(); i++)
+            unsigned int* deployments = deploymentResponse->GetDeployments();
+            for (auto i = 0; i < deploymentResponse->PopulationCount; i++)
             {
-                cout << "Requesting expansion " << i << " for model " << modelName << "\n";
-                protocol::ModelExpansionRequest request(modelName, i);
-                auto response = socket.TransactWithServer<protocol::ModelExpansionRequest, protocol::ModelExpansionResponse>(request);
-                auto* expansionResponse = reinterpret_cast<protocol::ModelExpansionResponse*>(response.get());
+                if (deployments[i] != 0)
+                {
+                    cout << "Requesting expansion " << i << " for model " << modelName << "\n";
+                    protocol::ModelExpansionRequest request(modelName, i);
+                    auto response = socket.TransactWithServer<protocol::ModelExpansionRequest, protocol::ModelExpansionResponse>(request);
+                    auto* expansionResponse = reinterpret_cast<protocol::ModelExpansionResponse*>(response.get());
 
-                cout << "Initializing " << expansionResponse->ConnectionCount << " connections in expansion " << i << " with starting index " << expansionResponse->StartingNeuronOffset << " and count " << expansionResponse->NeuronCount << "\n";
-                InitializeExpansion(expansionResponse->StartingNeuronOffset, expansionResponse->ConnectionCount, expansionResponse->GetConnections());
+                    cout << "Initializing " << expansionResponse->ConnectionCount << " connections in expansion " << i << " with starting index " << expansionResponse->StartingNeuronOffset << " and count " << expansionResponse->NeuronCount << "\n";
+                    InitializeExpansion(expansionResponse->StartingNeuronOffset, expansionResponse->ConnectionCount, expansionResponse->GetConnections());
+                }
             }
+
+            return true;
         }
 
     private:

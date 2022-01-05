@@ -22,6 +22,7 @@ namespace embeddedpenguins::core::neuron::model
     class ConfigurationRepository
     {
         string stackConfigurationPath_ { "/configuration/configuration.json" };
+        string defaultControlFile_ { "defaultcontrol.json" };
 
         bool valid_ { false };
         string configurationPath_ {};
@@ -35,6 +36,9 @@ namespace embeddedpenguins::core::neuron::model
         json control_ {};
         json monitor_ {};
         json settings_ {};
+        string modelName_ {};
+        string deploymentName_ {};
+        string engineName_ {};
 
     public:
         const bool Valid() const { return valid_; }
@@ -43,6 +47,12 @@ namespace embeddedpenguins::core::neuron::model
         const json& Configuration() const { return configuration_; }
         const json& Monitor() const { return monitor_; }
         const json& Settings() const { return settings_; }
+        const string& ModelName() const { return modelName_; }
+        void ModelName(const string& modelName) { modelName_ = modelName; }
+        const string& DeploymentName() const { return deploymentName_; }
+        void DeploymentName(const string& deploymentName) { deploymentName_ = deploymentName; }
+        const string& EngineName() const { return engineName_; }
+        void EngineName(const string& engineName) { engineName_ = engineName; }
 
     public:
         ConfigurationRepository() = default;
@@ -69,7 +79,8 @@ namespace embeddedpenguins::core::neuron::model
 
             LoadStackConfiguration();
 
-            LoadSettings();
+            if (valid_)
+                LoadSettings();
 
             if (valid_)
                 LoadControl();
@@ -207,6 +218,21 @@ namespace embeddedpenguins::core::neuron::model
         //
         void LoadControl()
         {
+            if (controlFile_.empty())
+            {
+                if (settings_.contains("DefaultControlFile"))
+                {
+                    controlFile_ = settings_["DefaultControlFile"].get<string>();
+                }
+                else
+                {
+                    controlFile_ = defaultControlFile_;
+                }
+            }
+
+            if (controlFile_.length() < 5 || controlFile_.substr(controlFile_.length()-5, controlFile_.length()) != ".json")
+                controlFile_ += ".json";
+
             controlFile_ = configurationPath_ + "/" + controlFile_;
             cout << "Using control file " << controlFile_ << "\n";
 

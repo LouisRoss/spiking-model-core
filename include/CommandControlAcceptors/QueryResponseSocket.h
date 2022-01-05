@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <functional>
+#include <chrono>
 
 #include "libsocket/exception.hpp"
 #include "libsocket/inetserverstream.hpp"
@@ -16,6 +17,9 @@ namespace embeddedpenguins::core::neuron::model
     using std::string;
     using std::unique_ptr;
     using std::function;
+    using std::chrono::milliseconds;
+    using std::chrono::duration_cast;
+    using namespace std::chrono_literals;
 
     using libsocket::inet_stream;
     using libsocket::inet_stream_server;
@@ -25,6 +29,9 @@ namespace embeddedpenguins::core::neuron::model
         unique_ptr<inet_stream> streamSocket_;
 
         string query_ { };
+        embeddedpenguins::core::neuron::model::time_point startTime_ {};
+        bool firstPeriodicSupport { true };
+
 
     public:
         inet_stream* StreamSocket() const { return streamSocket_.get(); }
@@ -66,6 +73,7 @@ namespace embeddedpenguins::core::neuron::model
             if (queryFragment.empty()) return false;
 
             BuildInputString(queryFragment);
+            startTime_ = high_resolution_clock::now();
 
             cout << "Query: " << query_;
 
@@ -76,6 +84,32 @@ namespace embeddedpenguins::core::neuron::model
             return true;
         }
 
+        void DoPeriodicSupport(unique_ptr<IQueryHandler> const & queryHandler)
+        {
+            if (firstPeriodicSupport)
+            {
+                startTime_ = high_resolution_clock::now();
+                firstPeriodicSupport = false;
+                return;
+            }
+
+            const nanoseconds period = nanoseconds(1000ms);
+
+            embeddedpenguins::core::neuron::model::time_point currentTime = high_resolution_clock::now();
+            if (currentTime - startTime_ > period)
+            {
+                startTime_ += period;
+
+                json query;
+                query["query"] = "fullstatus";
+                const string& response = queryHandler->HandleQuery(query.dump());
+
+                *streamSocket_ << response;
+            }
+
+        }
+
+    private:
         void BuildInputString(string& queryFragment)
         {
             query_.clear();

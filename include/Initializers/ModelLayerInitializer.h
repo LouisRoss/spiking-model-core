@@ -22,7 +22,7 @@ namespace embeddedpenguins::core::neuron::model
         {
         }
 
-        virtual void Initialize() override
+        virtual bool Initialize() override
         {
             this->helper_->InitializeModel();
 
@@ -39,6 +39,8 @@ namespace embeddedpenguins::core::neuron::model
                 InitializeARow(row, row + 1);
             }
             InitializeARow(this->helper_->Height() - 1, 0);
+
+            return true;
         }
 
     private:

@@ -52,12 +52,12 @@ namespace embeddedpenguins::core::neuron::model
             valid_ = true;
         }
 
-        virtual void Initialize() override
+        virtual bool Initialize() override
         {
             if (!valid_)
             {
                 cout << "ModelSonataInitializer is not in a valid state and can not initialize\n";
-                return;
+                return false;
             }
 #ifndef TESTING
             persister_->LoadConfiguration();
@@ -78,6 +78,7 @@ namespace embeddedpenguins::core::neuron::model
                 }
             }
 #endif
+            return true;
         }
     };
 }

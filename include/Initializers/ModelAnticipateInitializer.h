@@ -20,7 +20,7 @@ namespace embeddedpenguins::core::neuron::model
 
     public:
         // IModelInitializer implementaton
-        virtual void Initialize() override
+        virtual bool Initialize() override
         {
             this->helper_->InitializeModel();
 
@@ -54,6 +54,8 @@ namespace embeddedpenguins::core::neuron::model
             this->SetInhibitoryNeuronType(Inh2);
             this->InitializeAConnection(N2, Inh2);
             this->InitializeAConnection(Inh2, I2);
+
+            return true;
         }
     };
 }

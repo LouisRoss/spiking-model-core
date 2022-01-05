@@ -40,9 +40,10 @@ namespace embeddedpenguins::life::infrastructure
 
         }
 
-        virtual void Initialize() override
+        virtual bool Initialize() override
         {
             this->helper_.InitializeModel();
+            return true;
         }
     };
 }

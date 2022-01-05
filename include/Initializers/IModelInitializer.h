@@ -23,6 +23,6 @@ namespace embeddedpenguins::core::neuron::model
         // Called before the model is run, this required method must 
         // initialize any state needed for a specific use case.
         //
-        virtual void Initialize() = 0;
+        virtual bool Initialize() = 0;
     };
 }

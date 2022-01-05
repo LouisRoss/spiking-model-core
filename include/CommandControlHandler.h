@@ -74,6 +74,8 @@ namespace embeddedpenguins::core::neuron::model
                 response_ = BuildConfigurationsResponse(response).dump();
             else if (query == "control")
                 response_ = BuildControlResponse(jsonQuery, response).dump();
+            else if (query == "deploy")
+                response_ = BuildDeployResponse(jsonQuery, response).dump();
             else
                 response_ = BuildErrorResponse(response, "unrecognized", "Json query contains no recognized request").dump();
         }
@@ -182,12 +184,14 @@ namespace embeddedpenguins::core::neuron::model
                 {
                     if (controlValues["run"].get<bool>())
                     {
+                        /*
                         if (controlValues.contains("configuration"))
                         {
                             string configuration = controlValues["configuration"].get<string>();
                             runner_.RunWithNewModel(configuration);
                         }
                         else
+                        */
                         {
                             runner_.RunWithExistingModel();
                         }
@@ -222,6 +226,37 @@ namespace embeddedpenguins::core::neuron::model
             return response;
         }
 
+        json& BuildDeployResponse(const json& jsonQuery, json& response)
+        {
+            string modelName {""};
+            if (jsonQuery.contains("model"))
+            {
+                modelName = jsonQuery["model"].get<string>();
+            }
+
+            string deploymentName {""};
+            if (jsonQuery.contains("deployment"))
+            {
+                deploymentName = jsonQuery["deployment"].get<string>();
+            }
+
+            string engineName {""};
+            if (jsonQuery.contains("engine"))
+            {
+                engineName = jsonQuery["engine"].get<string>();
+            }
+            cout << "Command Control handler for Deploy(model: '" << modelName << "', deployment: '" << deploymentName << "', engine: '" << engineName << "')\n";
+
+            // Let the runner manage the deployment.
+            auto success = runner_.DeployModel(modelName, deploymentName, engineName);
+
+            json deployResponse;
+            deployResponse["result"] = success ? "ok" : "fail";
+
+            response["response"] = deployResponse;
+            return response;
+        }
+
         json& BuildErrorResponse(json& response, const char* error, const char* errorDetail)
         {
             json errorResponse;
@@ -237,11 +272,12 @@ namespace embeddedpenguins::core::neuron::model
         json BuildFullStatusElement()
         {
             json statusResponse = runner_.RenderStatus();
-
+/*
             auto filename = runner_.ControlFile();
             if (filename.length() > 5 && filename.substr(filename.length()-5, filename.length()) == ".json")
                 filename = filename.substr(0, filename.length()-5);
-            statusResponse["controlfile"] = filename;
+*/
+            statusResponse["controlfile"] = "defaultcontrol";
 
             statusResponse["logenable"] = Log::Enabled();
 

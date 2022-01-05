@@ -67,10 +67,12 @@ namespace embeddedpenguins::core::neuron::model
                 initializer_ = createInitializer_(helper);
         }
 
-        virtual void Initialize() override
+        virtual bool Initialize() override
         {
             if (initializer_ && valid_)
-                initializer_->Initialize();
+                return initializer_->Initialize();
+
+            return false;
         }
 
     private:
