@@ -15,7 +15,7 @@ namespace embeddedpenguins::core::neuron::model
     public:
         virtual ~ISensorInput() = default;
 
-        virtual void CreateProxy(const ConfigurationRepository& configuration) = 0;
+        virtual void CreateProxy(ConfigurationRepository& configuration) = 0;
         virtual bool Connect(const string& connectionString) = 0;
         virtual bool Disconnect() = 0;
         virtual vector<unsigned long long>& AcquireBuffer() = 0;

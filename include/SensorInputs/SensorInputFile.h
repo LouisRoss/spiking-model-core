@@ -20,19 +20,19 @@ namespace embeddedpenguins::core::neuron::model
 
     class SensorInputFile : public ISensorInput
     {
-        const ConfigurationRepository& configuration_;
+        ConfigurationRepository& configuration_;
         nlohmann::ordered_json inputStream_ {};
         multimap<int, unsigned long long int> signalToInject_ {};
         vector<unsigned long long> signalToReturn_ {};
 
     public:
-        SensorInputFile(const ConfigurationRepository& configuration) :
+        SensorInputFile(ConfigurationRepository& configuration) :
             configuration_(configuration)
         {
         }
 
         // ISensorInput implementaton
-        virtual void CreateProxy(const ConfigurationRepository& configuration) override { }
+        virtual void CreateProxy(ConfigurationRepository& configuration) override { }
 
         virtual bool Connect(const string& connectionString) override
         {

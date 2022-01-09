@@ -42,7 +42,8 @@ namespace embeddedpenguins::core::neuron::model
                 response_.clear();
 
                 auto jsonQuery = json::parse(query);
-                cout << "HandleQuery: " << jsonQuery << "\n";
+                if (!jsonQuery.contains("query") || !jsonQuery["query"].is_string() || jsonQuery["query"].get<string>() != "fullstatus")
+                    cout << "HandleQuery: " << jsonQuery << "\n";
 
                 ParseQuery(jsonQuery);
             }

@@ -29,7 +29,7 @@ namespace embeddedpenguins::core::neuron::model
 
     class SensorInputSocket : public ISensorInput
     {
-        const ConfigurationRepository& configuration_;
+        ConfigurationRepository& configuration_;
 
         mutex mutex_ {};
         multimap<int, unsigned long long int> signalToInject_ {};
@@ -40,13 +40,13 @@ namespace embeddedpenguins::core::neuron::model
         unique_ptr<WorkerThread<SensorInputListenSocket>> sensorInputWorkerThread_ {};
 
     public:
-        SensorInputSocket(const ConfigurationRepository& configuration) :
+        SensorInputSocket(ConfigurationRepository& configuration) :
             configuration_(configuration)
         {
         }
 
         // ISensorInput implementaton
-        virtual void CreateProxy(const ConfigurationRepository& configuration) override { }
+        virtual void CreateProxy(ConfigurationRepository& configuration) override { }
 
         //
         // Interpret the connection string as a hostname and port number

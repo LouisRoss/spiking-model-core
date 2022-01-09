@@ -80,7 +80,7 @@ namespace embeddedpenguins::core::neuron::model
             bool quit {false};
 
             char c {' '};
-            auto gotChar = listener.Listen(50'000, c);
+            auto gotChar = listener.Listen(5'000, c);
             if (gotChar)
             {
                 switch (c)

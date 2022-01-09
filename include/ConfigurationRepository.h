@@ -39,6 +39,8 @@ namespace embeddedpenguins::core::neuron::model
         string modelName_ {};
         string deploymentName_ {};
         string engineName_ {};
+        string recordDirectory_ {};
+        string recordFile_ {};
 
     public:
         const bool Valid() const { return valid_; }
@@ -94,49 +96,62 @@ namespace embeddedpenguins::core::neuron::model
             return valid_;
         }
 
-        const string ComposeRecordPath() const
+        const string ComposeRecordPath()
         {
             auto recordDirectory = ExtractRecordDirectory();
 
-            string fileName {"ModelEngineRecord.csv"};
-            auto file(configuration_["PostProcessing"]["RecordFile"]);
-            if (file.is_string())
-                fileName = file.get<string>();
+            string fileName = recordFile_;
+            if (fileName.empty())
+            {
+                fileName = "ModelEngineRecord.csv";
+                auto file(configuration_["PostProcessing"]["RecordFile"]);
+                if (file.is_string())
+                    fileName = file.get<string>();
+
+                recordFile_ = fileName;
+            }
 
             return recordDirectory + fileName;
         }
 
-        const string ExtractRecordDirectory() const
+        const string ExtractRecordDirectory()
         {
-            string recordDirectory {"./"};
-            auto path = configuration_["PostProcessing"]["RecordLocation"];
-            if (path.is_string())
-                recordDirectory = path.get<string>();
+            string recordDirectory = recordDirectory_;
 
-            if (recordDirectory[recordDirectory.length() - 1] != '/')
-                recordDirectory += '/';
-
-            auto project = control_["Configuration"];
-            if (project.is_string())
+            if (recordDirectory.empty())
             {
-                auto configuration= project.get<string>();
-                auto lastSlashPos = configuration.rfind('/');
-                if (lastSlashPos != configuration.npos)
-                    configuration = configuration.substr(lastSlashPos + 1, configuration.size() - lastSlashPos);
+                string recordDirectory {"./"};
+                auto path = configuration_["PostProcessing"]["RecordLocation"];
+                if (path.is_string())
+                    recordDirectory = path.get<string>();
 
-                auto jsonExtensionPos = configuration.rfind(".json");
-                if (jsonExtensionPos != configuration.npos)
-                    configuration = configuration.substr(0, jsonExtensionPos);
+                if (recordDirectory[recordDirectory.length() - 1] != '/')
+                    recordDirectory += '/';
 
-                recordDirectory += configuration;
+                auto project = control_["Configuration"];
+                if (project.is_string())
+                {
+                    auto configuration= project.get<string>();
+                    auto lastSlashPos = configuration.rfind('/');
+                    if (lastSlashPos != configuration.npos)
+                        configuration = configuration.substr(lastSlashPos + 1, configuration.size() - lastSlashPos);
+
+                    auto jsonExtensionPos = configuration.rfind(".json");
+                    if (jsonExtensionPos != configuration.npos)
+                        configuration = configuration.substr(0, jsonExtensionPos);
+
+                    recordDirectory += configuration;
+                }
+
+                if (recordDirectory[recordDirectory.length() - 1] != '/')
+                    recordDirectory += '/';
+
+                cout << "Record directory: " << recordDirectory << '\n';
+                create_directories(recordDirectory);
+
+                recordDirectory_ = recordDirectory;
             }
 
-            if (recordDirectory[recordDirectory.length() - 1] != '/')
-                recordDirectory += '/';
-
-            cout << "Record directory: " << recordDirectory << '\n';
-
-            create_directories(recordDirectory);
             return recordDirectory;
         }
 

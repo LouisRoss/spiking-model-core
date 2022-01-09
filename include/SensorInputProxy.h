@@ -58,7 +58,7 @@ namespace embeddedpenguins::core::neuron::model
 
     public:
         // ISensorInput implementaton
-        virtual void CreateProxy(const ConfigurationRepository& configuration) override
+        virtual void CreateProxy(ConfigurationRepository& configuration) override
         {
             LoadISensorInput();
             if (createSensorInput_ != nullptr)

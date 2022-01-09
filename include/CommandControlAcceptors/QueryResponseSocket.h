@@ -93,7 +93,7 @@ namespace embeddedpenguins::core::neuron::model
                 return;
             }
 
-            const nanoseconds period = nanoseconds(1000ms);
+            const nanoseconds period = nanoseconds(250ms);
 
             embeddedpenguins::core::neuron::model::time_point currentTime = high_resolution_clock::now();
             if (currentTime - startTime_ > period)

@@ -42,7 +42,7 @@ namespace embeddedpenguins::core::neuron::model
         }
 
     public:
-        Recorder(unsigned long long int& ticks, const ConfigurationRepository& configuration) :
+        Recorder(unsigned long long int& ticks, ConfigurationRepository& configuration) :
             ticks_(ticks)
         {
             RecordFile() = configuration.ComposeRecordPath();
