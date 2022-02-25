@@ -120,7 +120,7 @@ namespace embeddedpenguins::core::neuron::model
 
             if (recordDirectory.empty())
             {
-                string recordDirectory {"./"};
+                recordDirectory = "./";
                 auto path = configuration_["PostProcessing"]["RecordLocation"];
                 if (path.is_string())
                     recordDirectory = path.get<string>();

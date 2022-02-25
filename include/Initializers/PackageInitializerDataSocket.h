@@ -193,7 +193,7 @@ namespace embeddedpenguins::core::neuron::model
 
         bool WaitForInput(long long waitNanoseconds)
         {
-            cout << "Waitng for socket input ready...";
+            cout << "Waiting for socket input ready...";
             auto [readSockets, _] = selectSet_->wait(waitNanoseconds);
 
             for (auto readSocket : readSockets)

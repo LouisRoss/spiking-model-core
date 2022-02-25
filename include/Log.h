@@ -45,7 +45,7 @@ namespace embeddedpenguins::core::neuron::model
 
         static bool Enable(bool enable, bool readback)
         {
-            static bool enabled {true};
+            static bool enabled {false};
 
             if (!readback) enabled = enable;
             return enabled;

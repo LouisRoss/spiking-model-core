@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <string>
+#include <limits>
 #include <filesystem>
 
 #include "nlohmann/json.hpp"
@@ -15,6 +16,7 @@ namespace embeddedpenguins::core::neuron::model
 {
     using std::cout;
     using std::string;
+    using std::numeric_limits;
     using std::filesystem::directory_iterator;
     using std::filesystem::exists;
 

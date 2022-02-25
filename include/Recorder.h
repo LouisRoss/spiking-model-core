@@ -47,6 +47,7 @@ namespace embeddedpenguins::core::neuron::model
         {
             RecordFile() = configuration.ComposeRecordPath();
 
+            cout << "Writing record header, overwriting previous record file at " << RecordFile() << "\n";
             ofstream recordfile;
             recordfile.open(RecordFile(), std::ofstream::out | std::ofstream::trunc);
 
