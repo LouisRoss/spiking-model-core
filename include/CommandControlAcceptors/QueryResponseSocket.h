@@ -77,9 +77,8 @@ namespace embeddedpenguins::core::neuron::model
 
             cout << "Query: " << query_;
 
-            const string& response = queryHandler->HandleQuery(query_);
-
-            *streamSocket_ << response;
+            string response = queryHandler->HandleQuery(query_);
+            BuildAndSendResponse(response);
 
             return true;
         }
@@ -102,14 +101,34 @@ namespace embeddedpenguins::core::neuron::model
 
                 json query;
                 query["query"] = "fullstatus";
-                const string& response = queryHandler->HandleQuery(query.dump());
-
-                *streamSocket_ << response;
+                string response = "  " + queryHandler->HandleQuery(query.dump());
+                BuildAndSendResponse(response);
             }
-
         }
 
     private:
+        void BuildAndSendResponse(string& response)
+        {
+            //cout << "Sending full status: " << response << "\n";
+            try
+            {
+                unsigned short bufferLength = response.length();
+
+                string responseWithLength = "  " + response;
+                auto* c_response = const_cast<char*>(responseWithLength.c_str());
+
+                *c_response = *(char *)&bufferLength;
+                *(c_response + 1) = *((char *)&bufferLength + 1);
+
+                streamSocket_->snd(c_response, responseWithLength.length());
+            }
+            catch(const std::exception& e)
+            {
+                // Swallow exception:  In the rare case that the client closed
+                // their end just before we send, this will fail.
+            }
+        }
+
         void BuildInputString(string& queryFragment)
         {
             query_.clear();
