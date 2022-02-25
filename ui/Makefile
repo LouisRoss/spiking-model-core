@@ -3,7 +3,7 @@ BDIR=../bin
 _INPUTGENDEPS = nngenlayer.py nngenanticipate.py
 INPUTGENDEPS = $(patsubst %,$(BDIR)/%,$(_INPUTGENDEPS))
 
-_FRAMEWORKDEPS = nn.py nnclean.py nnplot.py nntidy.py mes.py 
+_FRAMEWORKDEPS = nn.py nnpost.py nnclean.py nnplot.py nntidy.py mes.py 
 FRAMEWORKDEPS = $(patsubst %,$(BDIR)/%,$(_FRAMEWORKDEPS))
 
 _DEPRECATEDDEPS = mem.py mev.py mec.py np.py
@@ -29,6 +29,9 @@ $(BDIR)/np.py: np.py
 
 $(BDIR)/nn.py: nn.py
 	cp nn.py $(BDIR)/
+
+$(BDIR)/nnpost.py: nnpost.py
+	cp nnpost.py $(BDIR)/
 
 $(BDIR)/nnclean.py: nnclean.py
 	cp nnclean.py $(BDIR)/
