@@ -32,6 +32,7 @@ namespace embeddedpenguins::core::neuron::model
         virtual const string& ModelName() const = 0;
         virtual const string& DeploymentName() const = 0;
         virtual const string& EngineName() const = 0;
+        virtual const string GetWiringFilename() const = 0;
         virtual const unsigned int Width() const = 0;
         virtual const unsigned int Height() const= 0;
         virtual bool AllocateModel(unsigned long int modelSize = 0) = 0;

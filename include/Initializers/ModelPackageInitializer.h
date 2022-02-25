@@ -74,14 +74,20 @@ namespace embeddedpenguins::core::neuron::model
     private:
         void InitializeExpansion(unsigned int offsetIndex, unsigned int connectionCount, protocol::ModelExpansionResponse::ConnectionType* connections)
         {
+            auto wiringFilename = helper_->GetWiringFilename();
+            bool useWiringFile = !wiringFilename.empty();
+
             ofstream csvfile;
-            csvfile.open("./wiring.csv");
-            csvfile << "presynaptic,postsynaptic,weight\n";
+            if (useWiringFile)
+            {
+                csvfile.open(wiringFilename);
+                csvfile << "presynaptic,postsynaptic,weight\n";
+            }
 
             for (auto i = 0; i < connectionCount; i++, connections++)
             {
                 protocol::ModelExpansionResponse::ConnectionType& connection = *connections;
-                csvfile << connection[0] + offsetIndex << "," << connection[1] + offsetIndex << "," << (int)connection[2] << "\n";
+                if (useWiringFile) csvfile << connection[0] + offsetIndex << "," << connection[1] + offsetIndex << "," << (int)connection[2] << "\n";
                 this->helper_->Wire(connection[0] + offsetIndex, connection[1] + offsetIndex, (int)connection[2]);
             }
         }
