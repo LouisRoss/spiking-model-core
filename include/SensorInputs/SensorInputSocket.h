@@ -10,6 +10,7 @@
 #include "nlohmann/json.hpp"
 
 #include "WorkerThread.h"
+#include "Log.h"
 #include "ConfigurationRepository.h"
 #include "SensorInputs/ISensorInput.h"
 #include "SensorInputs/SensorInputListenSocket.h"
@@ -30,6 +31,8 @@ namespace embeddedpenguins::core::neuron::model
     class SensorInputSocket : public ISensorInput
     {
         ConfigurationRepository& configuration_;
+        unsigned long long int& iterations_;
+        LogLevel& loggingLevel_;
 
         mutex mutex_ {};
         multimap<int, unsigned long long int> signalToInject_ {};
@@ -40,13 +43,15 @@ namespace embeddedpenguins::core::neuron::model
         unique_ptr<WorkerThread<SensorInputListenSocket>> sensorInputWorkerThread_ {};
 
     public:
-        SensorInputSocket(ConfigurationRepository& configuration) :
-            configuration_(configuration)
+        SensorInputSocket(ConfigurationRepository& configuration, unsigned long long int& iterations, LogLevel& loggingLevel) :
+            configuration_(configuration),
+            iterations_(iterations),
+            loggingLevel_(loggingLevel)
         {
         }
 
         // ISensorInput implementaton
-        virtual void CreateProxy(ConfigurationRepository& configuration) override { }
+        virtual void CreateProxy(ConfigurationRepository& configuration, unsigned long long int& iterations, LogLevel& loggingLevel) override { }
 
         //
         // Interpret the connection string as a hostname and port number
@@ -56,7 +61,7 @@ namespace embeddedpenguins::core::neuron::model
         {
             auto [host, port] = ParseConnectionString(connectionString);
 
-            sensorInput_ = std::move(make_unique<SensorInputListenSocket>(host, port, configuration_, 
+            sensorInput_ = std::move(make_unique<SensorInputListenSocket>(host, port, configuration_, iterations_, loggingLevel_,
                 [this](const multimap<int, unsigned long long int>& signalToInject) {
                     unique_lock<mutex> lock(mutex_);
                     cout << "Injecting signal with " << signalToInject.size() << " spikes\n";
@@ -91,10 +96,10 @@ namespace embeddedpenguins::core::neuron::model
             while (!done)
             {
                 auto nextSignal = signalToInject_.begin();
-                cout << "Sensor socket considering signal at tick " << nextSignal->first << "\n";
+                //cout << "Sensor socket considering signal at tick " << nextSignal->first << "\n";
                 if (nextSignal->first < 0 || nextSignal->first <= tickNow)
                 {
-                    cout << "Sensor socket adding offset " << nextSignal->second << " to signal to return\n";
+                    //cout << "Sensor socket adding offset " << nextSignal->second << " to signal to return\n";
                     signalToReturn_.push_back(nextSignal->second);
                     signalToInject_.extract(nextSignal);
                     done = signalToInject_.empty();
@@ -102,6 +107,15 @@ namespace embeddedpenguins::core::neuron::model
                 else
                 {
                     done = true;
+                    if (loggingLevel_ == LogLevel::Diagnostic && !signalToReturn_.empty())
+                    {
+                        cout << "Sensor socket injecting offsets ";
+                        for (auto& offset : signalToReturn_)
+                        {
+                            cout << offset << " ";
+                        }
+                        cout << " at tick " << tickNow << "\n";
+                    }
                 }
             };
 

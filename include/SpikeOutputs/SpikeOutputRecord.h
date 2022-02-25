@@ -25,7 +25,7 @@ namespace embeddedpenguins::core::neuron::model
     class SpikeOutputRecord : public ISpikeOutput
     {
         ModelEngineContext& context_;
-        const ConfigurationRepository& configuration_;
+        ConfigurationRepository& configuration_;
         unsigned long long int& ticks_;
         Recorder<RECORDTYPE> recorder_;
         unsigned int lineCount_ { };
@@ -53,11 +53,16 @@ namespace embeddedpenguins::core::neuron::model
             return true;
         }
 
-        virtual void StreamOutput(unsigned long long neuronIndex, short int activation, NeuronRecordType type) override
+        //
+        // We obey the disable flag, we can be turned off.
+        //
+        virtual bool RespectDisableFlag() override { return true; }
+        
+        virtual void StreamOutput(unsigned long long neuronIndex, short int activation, unsigned short synapseIndex, short int synapseStrength, NeuronRecordType type) override
         {
             if (!context_.RecordEnable) return;
             
-            RECORDTYPE record(type, neuronIndex, activation);
+            RECORDTYPE record(type, neuronIndex, activation, synapseIndex, synapseStrength);
             recorder_.Record(record);
 
             FlushWhenBufferFull();

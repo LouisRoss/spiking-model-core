@@ -11,6 +11,7 @@
 #include "nlohmann/json.hpp"
 
 #include "ModelEngineContext.h"
+#include "Log.h"
 #include "ConfigurationRepository.h"
 #include "SpikeOutputs/ISpikeOutput.h"
 #include "SpikeSignalProtocol.h"
@@ -61,8 +62,11 @@ namespace embeddedpenguins::core::neuron::model
 
             if (!connected && !service.empty())
             {
+                cout << "Developing connection string from service " << service << "\n";
                 auto [serviceName, portType] = ParseConnectionString(service, "", "");
+                cout << "Developing connection string from service " << serviceName << ", port " << portType << "\n";
                 auto [host, port] = GetServiceConnection(serviceName, portType);
+                cout << "Connecting to host " << host << ", port " << port << "\n";
                 connected = TryConnect(host, port);
             }
 
@@ -82,15 +86,20 @@ namespace embeddedpenguins::core::neuron::model
             return true;
         }
 
+        //
+        // We always stream output, without respect to the disable flag.  Cannot be turned off.
+        //
+        virtual bool RespectDisableFlag() override { return false; }
+        
         virtual bool IsInterestedIn(NeuronRecordType type) override 
         {
             //return type == NeuronRecordType::Spike;
             return type == NeuronRecordType::Refractory;
         }
 
-        virtual void StreamOutput(unsigned long long neuronIndex, short int activation, NeuronRecordType type) override
+        virtual void StreamOutput(unsigned long long neuronIndex, short int activation, unsigned short synapseIndex, short int synapseStrength, NeuronRecordType type) override
         {
-            cout << "SpikeOutputSocket::StreamOutput(" << neuronIndex << "," << activation << ")\n";
+            //cout << "SpikeOutputSocket::StreamOutput(" << neuronIndex << "," << activation << ")\n";
             //json sample;
             //sample.push_back(context_.Iterations);
             //sample.push_back(neuronIndex);
@@ -105,20 +114,30 @@ namespace embeddedpenguins::core::neuron::model
 
         virtual void Flush() override
         {
-            if (protocol_.CurrentSpikeBufferIndex == 0) return;
+            if (protocol_.Empty()) return;
 
             try
             {
+                cout << "Spike output socket sending " << protocol_.GetCurrentBufferCount() << " spikes: ";
+                SpikeSignal* spike = protocol_.SpikeBuffer();
+                auto baseTick = spike->Tick;
+                for (auto spikeIndex = 0; spikeIndex < protocol_.GetCurrentBufferCount(); spikeIndex++, spike++)
+                {
+                    spike->Tick -= baseTick;
+                    if (context_.LoggingLevel == LogLevel::Diagnostic) cout << "(" << spike->Tick << "," << spike->NeuronIndex << ") ";
+                }
+                cout << " at tick " << context_.Iterations << "\n";
+                
                 // First field is the count of structs in the array, not the byte count.
                 SpikeSignalLengthFieldType bufferLength = protocol_.GetCurrentBufferCount();
                 streamSocket_->snd((void*)&bufferLength, SpikeSignalLengthSize);
-                streamSocket_->snd((void*)&protocol_.SpikeBuffer, protocol_.GetBufferSize(bufferLength));
+                streamSocket_->snd((void*)protocol_.SpikeBuffer(), protocol_.GetBufferSize(bufferLength));
             } catch (const socket_exception& exc)
             {
                 cout << "SpikeOutputSocket Flush() caught exception: " << exc.mesg;
             }
             
-            protocol_.CurrentSpikeBufferIndex = 0;
+            protocol_.Reset();
 
             /*
             if (spikes_.empty()) return;

@@ -13,6 +13,7 @@
 #include "libsocket/socket.hpp"
 
 
+#include "Log.h"
 #include "ConfigurationRepository.h"
 #include "SensorInputDataSocket.h"
 
@@ -37,6 +38,8 @@ namespace embeddedpenguins::core::neuron::model
     {
         inet_stream_server server_ { };
         const ConfigurationRepository& configuration_;
+        unsigned long long int& iterations_;
+        LogLevel& loggingLevel_;
 
         unique_ptr<selectset<socket>> selectSet_ { };
 
@@ -46,9 +49,12 @@ namespace embeddedpenguins::core::neuron::model
         function<void(const multimap<int, unsigned long long int>&)> InjectCallback_;
 
     public:
-        SensorInputListenSocket(const string& host, const string& port, const ConfigurationRepository& configuration, function<void(const multimap<int, unsigned long long int>&)> injectCallback) :
+        SensorInputListenSocket(const string& host, const string& port, const ConfigurationRepository& configuration, unsigned long long int& iterations, LogLevel& loggingLevel,
+                                        function<void(const multimap<int, unsigned long long int>&)> injectCallback) :
             server_(host, port, LIBSOCKET_IPv4),
             configuration_(configuration),
+            iterations_(iterations),
+            loggingLevel_(loggingLevel),
             InjectCallback_(injectCallback)
         {
             // Louis Ross - I modified libsocket to always apply SO_REUSEADDR=1 just before a server socket binds.
@@ -103,7 +109,7 @@ namespace embeddedpenguins::core::neuron::model
             if (ccSockets_.find(readSocket) == end(ccSockets_))
             {
                 cout << "SensorInputListenSocket found readable socket is listen socket, creating new connection\n";
-                auto dataSocket = make_unique<SensorInputDataSocket>(listenSocket);
+                auto dataSocket = make_unique<SensorInputDataSocket>(listenSocket, iterations_, loggingLevel_);
                 ccSockets_[dataSocket->StreamSocket()] = std::move(dataSocket);
                 MakeSelectSet();
             }
@@ -111,7 +117,7 @@ namespace embeddedpenguins::core::neuron::model
 
         void HandleInput(socket* readSocket, inet_stream* dataSocket)
         {
-            cout << "SensorInputListenSocket found readable data socket, handling request\n";
+            if (loggingLevel_ == LogLevel::Diagnostic)  cout << "SensorInputListenSocket found readable data socket, handling request\n";
             auto iSocket = ccSockets_.find(readSocket);
             if (iSocket != end(ccSockets_))
             {

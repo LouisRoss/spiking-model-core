@@ -20,7 +20,7 @@ namespace embeddedpenguins::core::neuron::model
 
     class SensorInputProxy : public ISensorInput
     {
-        using SensorInputCreator = ISensorInput* (*)(const ConfigurationRepository&);
+        using SensorInputCreator = ISensorInput* (*)(const ConfigurationRepository&, unsigned long long int&, LogLevel&);
         using SensorInputDeleter = void (*)(ISensorInput*);
 
         const string sensorInputSharedLibraryPath_ {};
@@ -58,11 +58,11 @@ namespace embeddedpenguins::core::neuron::model
 
     public:
         // ISensorInput implementaton
-        virtual void CreateProxy(ConfigurationRepository& configuration) override
+        virtual void CreateProxy(ConfigurationRepository& configuration, unsigned long long int& iterations, LogLevel& loggingLevel) override
         {
             LoadISensorInput();
             if (createSensorInput_ != nullptr)
-                sensorInput_ = createSensorInput_(configuration);
+                sensorInput_ = createSensorInput_(configuration, iterations, loggingLevel);
         }
 
         virtual bool Connect(const string& connectionString) override

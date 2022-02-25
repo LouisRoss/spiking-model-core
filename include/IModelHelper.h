@@ -47,7 +47,7 @@ namespace embeddedpenguins::core::neuron::model
         virtual short GetNeuronActivation(const unsigned long int source) const = 0;
         virtual void SetExcitatoryNeuronType(const unsigned long int source) = 0;
         virtual void SetInhibitoryNeuronType(const unsigned long int source) = 0;
-        virtual vector<tuple<unsigned long long, short int, NeuronRecordType>> CollectRelevantNeurons() = 0;
+        virtual vector<tuple<unsigned long long, short int, unsigned short, short int, NeuronRecordType>> CollectRelevantNeurons(bool includeSynapses) = 0;
         virtual unsigned long int FindRequiredSynapseCounts() = 0;
    };
 }

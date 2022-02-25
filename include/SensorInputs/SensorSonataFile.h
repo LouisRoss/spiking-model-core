@@ -12,6 +12,7 @@
 #include "persistence/sonata/SonataModelPersister.h"
 #include "persistence/sonata/SonataInputSpikeLoader.h"
 
+#include "Log.h"
 #include "ConfigurationRepository.h"
 #include "SensorInputs/ISensorInput.h"
 
@@ -36,6 +37,8 @@ namespace embeddedpenguins::core::neuron::model
     class SensorSonataFile : public ISensorInput
     {
         const ConfigurationRepository& configuration_;
+        unsigned long long int& iterations_;
+        LogLevel& loggingLevel_;
         nlohmann::ordered_json inputStream_ {};
 
         unique_ptr<SonataModelRepository> sonataRepository_ {nullptr};
@@ -45,13 +48,15 @@ namespace embeddedpenguins::core::neuron::model
         vector<unsigned long long> signalToReturn_ {};
 
     public:
-        SensorSonataFile(const ConfigurationRepository& configuration) :
-            configuration_(configuration)
+        SensorSonataFile(const ConfigurationRepository& configuration, unsigned long long int& iterations, LogLevel& loggingLevel) :
+            configuration_(configuration),
+            iterations_(iterations),
+            loggingLevel_(loggingLevel)
         {
         }
 
         // ISensorInput implementaton
-        virtual void CreateProxy(const ConfigurationRepository& configuration) override { }
+        virtual void CreateProxy(const ConfigurationRepository& configuration, unsigned long long int& iterations, LogLevel& loggingLevel) override { }
 
         virtual bool Connect(const string& connectionString) override
         {

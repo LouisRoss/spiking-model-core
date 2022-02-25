@@ -32,8 +32,9 @@ namespace embeddedpenguins::core::neuron::model
         virtual void CreateProxy(ModelEngineContext& context) = 0;
         virtual bool Connect() = 0;
         virtual bool Disconnect() = 0;
+        virtual bool RespectDisableFlag() = 0;
         virtual bool IsInterestedIn(NeuronRecordType type) { return true; }
-        virtual void StreamOutput(unsigned long long neuronIndex, short int activation, NeuronRecordType type) = 0;
+        virtual void StreamOutput(unsigned long long neuronIndex, short int activation, unsigned short synapseIndex, short int synapseStrength, NeuronRecordType type) = 0;
         virtual void Flush() = 0;
     };
 }

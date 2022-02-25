@@ -1,4 +1,5 @@
 #pragma once
+#include <fstream>
 
 #include "IModelHelper.h"
 #include "ModelNeuronInitializer.h"
@@ -6,6 +7,8 @@
 
 namespace embeddedpenguins::core::neuron::model
 {
+    using std::ofstream;
+
     //
     //
     class ModelPackageInitializer : public ModelNeuronInitializer
@@ -71,10 +74,15 @@ namespace embeddedpenguins::core::neuron::model
     private:
         void InitializeExpansion(unsigned int offsetIndex, unsigned int connectionCount, protocol::ModelExpansionResponse::ConnectionType* connections)
         {
+            ofstream csvfile;
+            csvfile.open("./wiring.csv");
+            csvfile << "presynaptic,postsynaptic,weight\n";
+
             for (auto i = 0; i < connectionCount; i++, connections++)
             {
                 protocol::ModelExpansionResponse::ConnectionType& connection = *connections;
-                this->helper_->Wire(connection[0] + offsetIndex, connection[1] + offsetIndex, connection[2]);
+                csvfile << connection[0] + offsetIndex << "," << connection[1] + offsetIndex << "," << (int)connection[2] << "\n";
+                this->helper_->Wire(connection[0] + offsetIndex, connection[1] + offsetIndex, (int)connection[2]);
             }
         }
     };

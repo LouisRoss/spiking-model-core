@@ -11,7 +11,8 @@ namespace embeddedpenguins::core::neuron::model
         InputSignal,
         Decay,
         Spike,
-        Refractory
+        Refractory,
+        SynapseAdjust
     };
 
     enum class NeuronType : char

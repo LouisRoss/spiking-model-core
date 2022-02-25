@@ -1,7 +1,11 @@
 #pragma once
+#include <memory>
 
 namespace embeddedpenguins::core::neuron::model
 {
+    using std::unique_ptr;
+    using std::make_unique;
+
     struct SpikeSignal
     {
         int Tick;
@@ -10,32 +14,44 @@ namespace embeddedpenguins::core::neuron::model
 
     constexpr unsigned int SpikeSignalBufferCount { 250 };
     constexpr unsigned int SpikeSignalSize { sizeof(SpikeSignal) };
-    constexpr unsigned int SpikeSignalBufferSize { SpikeSignalBufferCount * SpikeSignalSize };
 
     using SpikeSignalLengthFieldType = unsigned short int;
     constexpr unsigned int SpikeSignalLengthSize { sizeof(SpikeSignalLengthFieldType) };
 
     class SpikeSignalProtocol
     {
+        unsigned int capacity_;
+        unsigned int currentSpikeBufferIndex_ { 0 };
+        unique_ptr<SpikeSignal[]> spikeBuffer_;
+
     public:
-        SpikeSignal SpikeBuffer[SpikeSignalBufferCount];
-        unsigned int CurrentSpikeBufferIndex { 0 };
+        SpikeSignalProtocol(unsigned int capacity = SpikeSignalBufferCount) :
+            capacity_(capacity),
+            spikeBuffer_(make_unique<SpikeSignal[]>(capacity))
+        {
+
+        }
 
         bool Buffer(const SpikeSignal& signal)
         {
-            auto& insertSignal = SpikeBuffer[CurrentSpikeBufferIndex];
+            auto& insertSignal = spikeBuffer_[currentSpikeBufferIndex_];
             insertSignal = signal;
 
-            if (CurrentSpikeBufferIndex >= SpikeSignalBufferCount)
+            if (currentSpikeBufferIndex_ >= capacity_)
             {
                 return true;
             }
 
-            CurrentSpikeBufferIndex++;
+            currentSpikeBufferIndex_++;
             return false;
         }
 
-        SpikeSignalLengthFieldType GetCurrentBufferCount() { return CurrentSpikeBufferIndex; }
-        SpikeSignalLengthFieldType GetBufferSize(SpikeSignalLengthFieldType spikeBufferIndex) { return spikeBufferIndex * SpikeSignalSize; }
+        SpikeSignal* SpikeBuffer() { return spikeBuffer_.get(); }
+        SpikeSignal& GetElementAt(SpikeSignalLengthFieldType index) { return spikeBuffer_[index]; }
+        bool Empty() const { return currentSpikeBufferIndex_ == 0; }
+        void Reset() { currentSpikeBufferIndex_ = 0; }
+        unsigned int SpikeSignalBufferSize() const { return capacity_ * SpikeSignalSize; }
+        SpikeSignalLengthFieldType GetCurrentBufferCount() const { return currentSpikeBufferIndex_; }
+        SpikeSignalLengthFieldType GetBufferSize(SpikeSignalLengthFieldType spikeBufferIndex) const { return spikeBufferIndex * SpikeSignalSize; }
     };
 }
