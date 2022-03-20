@@ -18,7 +18,8 @@ namespace embeddedpenguins::core::neuron::model
     enum class NeuronType : char
     {
         Excitatory,
-        Inhibitory
+        Inhibitory,
+        Attention
     };
 
     struct NeuronRecordConnection

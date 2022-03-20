@@ -93,8 +93,8 @@ namespace embeddedpenguins::core::neuron::model
         
         virtual bool IsInterestedIn(NeuronRecordType type) override 
         {
-            //return type == NeuronRecordType::Spike;
-            return type == NeuronRecordType::Refractory;
+            return type == NeuronRecordType::Spike;
+            //return type == NeuronRecordType::Refractory;
         }
 
         virtual void StreamOutput(unsigned long long neuronIndex, short int activation, unsigned short synapseIndex, short int synapseStrength, NeuronRecordType type) override
@@ -233,13 +233,13 @@ namespace embeddedpenguins::core::neuron::model
             string connectionString;
             string service;
 
-            if (!context_.Configuration.Configuration().contains("Execution"))
+            if (!context_.Configuration.Control().contains("Execution"))
             {
                 cout << "Configuration contains no 'Execution' element, not creating output streamer\n";
                 return {connectionString, service};
             }
 
-            const json& executionJson = context_.Configuration.Configuration()["Execution"];
+            const json& executionJson = context_.Configuration.Control()["Execution"];
             if (!executionJson.contains("OutputStreamers"))
             {
                 cout << "Configuration 'Execution' element contains no 'OutputStreamers' subelement, not creating output streamer\n";

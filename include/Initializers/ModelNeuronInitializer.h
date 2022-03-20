@@ -12,6 +12,7 @@
 #include "ConfigurationRepository.h"
 #include "IModelHelper.h"
 #include "IModelInitializer.h"
+#include "PackageInitializerProtocol.h"
 
 namespace embeddedpenguins::core::neuron::model
 {
@@ -24,6 +25,7 @@ namespace embeddedpenguins::core::neuron::model
     using std::numeric_limits;
 
     using nlohmann::json;
+    using embeddedpenguins::core::neuron::model::initializerprotocol::ModelExpansionResponse;
 
     struct Neuron2Dim
     {
@@ -60,7 +62,7 @@ namespace embeddedpenguins::core::neuron::model
         void InitializeAnInput(int row, int column)
         {
             auto sourceIndex = helper_->GetIndex(row, column);
-            this->helper_->WireInput(sourceIndex, strength_);
+            this->helper_->WireInput(sourceIndex, strength_, NeuronType::Excitatory);
         }
 
         void InitializeAnInput(const Neuron2Dim& neuron)
@@ -72,7 +74,7 @@ namespace embeddedpenguins::core::neuron::model
         {
             auto sourceIndex = helper_->GetIndex(row, column);
             auto destinationIndex = helper_->GetIndex(destRow, destCol);
-            this->helper_->Wire(sourceIndex, destinationIndex, strength_);
+            this->helper_->Wire(sourceIndex, destinationIndex, strength_, NeuronType::Excitatory);
         }
 
         void InitializeAConnection(const Neuron2Dim& source, const Neuron2Dim& destination)
@@ -125,20 +127,23 @@ namespace embeddedpenguins::core::neuron::model
         void LoadOptionalNamedNeurons()
         {
             const json& configuration = Configuration();
-            auto& modelSection = configuration["Model"];
-            if (!modelSection.is_null() && modelSection.contains("Neurons"))
+            if (configuration.contains("Model"))
             {
-                auto& namedNeuronsElement = modelSection["Neurons"];
-                if (namedNeuronsElement.is_object())
+                const auto& modelSection = configuration["Model"];
+                if (!modelSection.is_null() && modelSection.contains("Neurons"))
                 {
-                    for (auto& neuron: namedNeuronsElement.items())
+                    auto& namedNeuronsElement = modelSection["Neurons"];
+                    if (namedNeuronsElement.is_object())
                     {
-                        auto neuronName = neuron.key();
-                        auto positionArray = neuron.value().get<std::vector<int>>();
-                        auto ypos = positionArray[0];
-                        auto xpos = positionArray[1];
+                        for (auto& neuron: namedNeuronsElement.items())
+                        {
+                            auto neuronName = neuron.key();
+                            auto positionArray = neuron.value().get<std::vector<int>>();
+                            auto ypos = positionArray[0];
+                            auto xpos = positionArray[1];
 
-                        namedNeurons_[neuronName] = make_tuple(ypos, xpos);
+                            namedNeurons_[neuronName] = make_tuple(ypos, xpos);
+                        }
                     }
                 }
             }

@@ -193,7 +193,6 @@ namespace embeddedpenguins::core::neuron::model
 
         bool WaitForInput(long long waitNanoseconds)
         {
-            cout << "Waiting for socket input ready...";
             auto [readSockets, _] = selectSet_->wait(waitNanoseconds);
 
             for (auto readSocket : readSockets)
@@ -201,7 +200,6 @@ namespace embeddedpenguins::core::neuron::model
                 inet_stream* dataSocket = dynamic_cast<inet_stream*>(readSocket);
                 if (dataSocket != nullptr)
                 {
-                    cout << "Ready!\n";
                     return true;
                 }
             }

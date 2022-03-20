@@ -75,6 +75,8 @@ namespace embeddedpenguins::core::neuron::model
                 response_ = BuildDynamicStatusResponse(response).dump();
             else if (query == "configurations")
                 response_ = BuildConfigurationsResponse(response).dump();
+            else if (query == "settings")
+                response_ = BuildSettingsResponse(jsonQuery, response).dump();
             else if (query == "control")
                 response_ = BuildControlResponse(jsonQuery, response).dump();
             else if (query == "deploy")
@@ -172,6 +174,52 @@ namespace embeddedpenguins::core::neuron::model
             return response;
         }
 
+        json& BuildSettingsResponse(const json& jsonQuery, json& response)
+        {
+            json settingsResponse;
+
+            if (jsonQuery.contains("values"))
+            {
+                const json& valuesJson = jsonQuery["values"];
+                if (valuesJson.is_array())
+                {
+                    auto valuesArray = valuesJson.get<std::vector<std::vector<string>>>();
+                    for(auto& settingsKeyValuePair: valuesArray)
+                    {
+                        auto& settingsKey = settingsKeyValuePair[0];
+                        auto& settingsValue = settingsKeyValuePair[1];
+
+                        runner_.getConfigurationRepository().UpdateSetting(settingsKey, settingsValue);
+                    };
+                }
+                else
+                {
+                    return BuildErrorResponse(response, "values element is not an array", "Query json must contain a 'Values' element that is an array type");
+                }
+
+                auto success = true;
+
+                settingsResponse["status"] = BuildFullStatusElement();
+                if (success)
+                {
+                    settingsResponse["result"] = "ok";
+                }
+                else
+                {
+                    settingsResponse["result"] = "fail";
+                    settingsResponse["error"] = "Unable to modify all settings requested";
+                }
+
+                response["response"] = settingsResponse;
+            }
+            else
+            {
+                return BuildErrorResponse(response, "missing Values", "Query json must contain a 'Values' element at the root");
+            }
+
+            return response;
+        }
+
         json& BuildControlResponse(const json& jsonQuery, json& response)
         {
             json controlResponse;
@@ -217,7 +265,15 @@ namespace embeddedpenguins::core::neuron::model
                 auto success = runner_.SetValue(controlValues);
 
                 controlResponse["status"] = BuildFullStatusElement();
-                controlResponse["result"] = success ? "ok" : "fail";
+                if (success)
+                {
+                    controlResponse["result"] = "ok";
+                }
+                else
+                {
+                    controlResponse["result"] = "fail";
+                    controlResponse["error"] = "Model is not in a valid state for control changes";
+                }
 
                 response["response"] = controlResponse;
             }

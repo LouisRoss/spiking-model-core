@@ -194,20 +194,23 @@ namespace embeddedpenguins::core::neuron::model
         void LoadOptionalNamedNeurons()
         {
             const json& configuration = modelRunner_.Configuration();
-            auto& modelSection = configuration["Model"];
-            if (!modelSection.is_null() && modelSection.contains("Neurons"))
+            if (configuration.contains("Model"))
             {
-                auto& namedNeuronsElement = modelSection["Neurons"];
-                if (namedNeuronsElement.is_object())
+                const auto& modelSection = configuration["Model"];
+                if (!modelSection.is_null() && modelSection.contains("Neurons"))
                 {
-                    for (auto& neuron: namedNeuronsElement.items())
+                    auto& namedNeuronsElement = modelSection["Neurons"];
+                    if (namedNeuronsElement.is_object())
                     {
-                        auto neuronName = neuron.key();
-                        auto positionArray = neuron.value().get<std::vector<int>>();
-                        auto xpos = positionArray[0];
-                        auto ypos = positionArray[1];
+                        for (auto& neuron: namedNeuronsElement.items())
+                        {
+                            auto neuronName = neuron.key();
+                            auto positionArray = neuron.value().get<std::vector<int>>();
+                            auto xpos = positionArray[0];
+                            auto ypos = positionArray[1];
 
-                        namedNeurons_[neuronName] = make_tuple(xpos, ypos);
+                            namedNeurons_[neuronName] = make_tuple(xpos, ypos);
+                        }
                     }
                 }
             }

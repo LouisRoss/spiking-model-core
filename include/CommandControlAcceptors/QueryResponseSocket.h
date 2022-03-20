@@ -55,7 +55,15 @@ namespace embeddedpenguins::core::neuron::model
         virtual ~QueryResponseSocket()
         {
             cout << "QueryResponseSocket dtor \n";
-            streamSocket_->shutdown(LIBSOCKET_READ | LIBSOCKET_WRITE);
+            try
+            {
+                streamSocket_->shutdown(LIBSOCKET_READ | LIBSOCKET_WRITE);
+            }
+            catch (const libsocket::socket_exception& e)
+            {
+                // Swallow this exception:  If the client closed first, this operation will be
+                // incomplete, but if we are shutting down first, we need to do it.
+            }
         }
 
         //
@@ -66,21 +74,30 @@ namespace embeddedpenguins::core::neuron::model
         //
         bool HandleInput(unique_ptr<IQueryHandler> const & queryHandler)
         {
-            string queryFragment;
-            queryFragment.resize(1000);
-            *streamSocket_ >> queryFragment;
+            try
+            {
+                string queryFragment;
+                queryFragment.resize(1000);
+                *streamSocket_ >> queryFragment;
 
-            if (queryFragment.empty()) return false;
+                if (queryFragment.empty()) return false;
 
-            BuildInputString(queryFragment);
-            startTime_ = high_resolution_clock::now();
+                BuildInputString(queryFragment);
+                startTime_ = high_resolution_clock::now();
 
-            cout << "Query: " << query_;
+                cout << "Query: " << query_ << "\n";
 
-            string response = queryHandler->HandleQuery(query_);
-            BuildAndSendResponse(response);
+                string response = queryHandler->HandleQuery(query_);
+                BuildAndSendResponse(response);
 
-            return true;
+                //*streamSocket_ << response;
+
+                return true;
+            }
+            catch(const libsocket::socket_exception& e)
+            {
+                return false;
+            }
         }
 
         void DoPeriodicSupport(unique_ptr<IQueryHandler> const & queryHandler)

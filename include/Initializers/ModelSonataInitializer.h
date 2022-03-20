@@ -39,17 +39,23 @@ namespace embeddedpenguins::core::neuron::model
             ModelNeuronInitializer<MODELHELPERTYPE>(helper)
         {
             cout << "ModelSonataInitializer ctor\n";
-            const json& sonataConfigurationJson = this->Configuration()["Model"]["SonataConfiguration"];
-            if (!sonataConfigurationJson.is_string())
+            if (this->Configuration().contains("Modle"))
             {
-                cout << "ModelSonataInitializer unable to find sonata configuration file path\n";
-                return;
+                const json& modelJson = this->Configuration()["Model"];
+                if (modelJson.contains("SonataConfiguration"))
+                {
+                    const json& sonataConfigurationJson = modelJson["SonataConfiguration"];
+                    if (sonataConfigurationJson.is_string())
+                    {
+                        auto sonataConfiguration = sonataConfigurationJson.get<string>();
+                        sonataRepository_ = make_unique<SonataModelRepository>(sonataConfiguration);
+                        persister_ = make_unique<SonataModelPersister>(sonataConfiguration, *sonataRepository_);
+                        valid_ = true;
+                    }
+                }
             }
-            auto sonataConfiguration = sonataConfigurationJson.get<string>();
 
-            sonataRepository_ = make_unique<SonataModelRepository>(sonataConfiguration);
-            persister_ = make_unique<SonataModelPersister>(sonataConfiguration, *sonataRepository_);
-            valid_ = true;
+            cout << "ModelSonataInitializer unable to find sonata configuration file path\n";
         }
 
         virtual bool Initialize() override

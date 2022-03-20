@@ -3,11 +3,17 @@
 
 #include "IModelHelper.h"
 #include "ModelNeuronInitializer.h"
+#include "PackageInitializerProtocol.h"
 #include "PackageInitializerDataSocket.h"
+#include "Converters.h"
+
+namespace protocol = embeddedpenguins::core::neuron::model::initializerprotocol;
 
 namespace embeddedpenguins::core::neuron::model
 {
     using std::ofstream;
+
+    using embeddedpenguins::core::neuron::model::ToRecordType;
 
     //
     //
@@ -41,17 +47,10 @@ namespace embeddedpenguins::core::neuron::model
             auto response = socket.TransactWithServer<protocol::ModelDeploymentRequest, protocol::ModelDeploymentResponse>(deploymentRequest);
             auto* deploymentResponse = reinterpret_cast<protocol::ModelDeploymentResponse*>(response.get());
 
-            cout << "ModelPackageHelper retrieved model size from packager of " << deploymentResponse->NeuronCount << " neurons and " << deploymentResponse->PopulationCount << " populations\n";
+            cout << "ModelPackageInitializer::Initialize retrieved model size from packager of " << deploymentResponse->NeuronCount << " neurons and " << deploymentResponse->PopulationCount << " populations\n";
 
             this->helper_->AllocateModel(deploymentResponse->NeuronCount);
             this->helper_->InitializeModel();
-
-            this->strength_ = 101;
-            this->InitializeAnInput(0, 1);
-            this->InitializeAnInput(0, 2);
-            this->InitializeAnInput(0, 3);
-            this->InitializeAnInput(0, 4);
-            this->InitializeAnInput(0, 5);
 
             unsigned int* deployments = deploymentResponse->GetDeployments();
             for (auto i = 0; i < deploymentResponse->PopulationCount; i++)
@@ -72,7 +71,7 @@ namespace embeddedpenguins::core::neuron::model
         }
 
     private:
-        void InitializeExpansion(unsigned int offsetIndex, unsigned int connectionCount, protocol::ModelExpansionResponse::ConnectionType* connections)
+        void InitializeExpansion(unsigned int offsetIndex, unsigned int connectionCount, protocol::ModelExpansionResponse::Connection* connections)
         {
             auto wiringFilename = helper_->GetWiringFilename();
             bool useWiringFile = !wiringFilename.empty();
@@ -81,14 +80,14 @@ namespace embeddedpenguins::core::neuron::model
             if (useWiringFile)
             {
                 csvfile.open(wiringFilename);
-                csvfile << "presynaptic,postsynaptic,weight\n";
+                csvfile << "presynaptic,postsynaptic,weight,type\n";
             }
 
             for (auto i = 0; i < connectionCount; i++, connections++)
             {
-                protocol::ModelExpansionResponse::ConnectionType& connection = *connections;
-                if (useWiringFile) csvfile << connection[0] + offsetIndex << "," << connection[1] + offsetIndex << "," << (int)connection[2] << "\n";
-                this->helper_->Wire(connection[0] + offsetIndex, connection[1] + offsetIndex, (int)connection[2]);
+                protocol::ModelExpansionResponse::Connection& connection = *connections;
+                if (useWiringFile) csvfile << connection.PreSynapticNeuron + offsetIndex << "," << connection.PostSynapticNeuron + offsetIndex << "," << (int)connection.SynapticStrength << "," << (int)connection.Type << "\n";
+                this->helper_->Wire(connection.PreSynapticNeuron + offsetIndex, connection.PostSynapticNeuron + offsetIndex, (int)connection.SynapticStrength, ToRecordType(connection.Type));
             }
         }
     };

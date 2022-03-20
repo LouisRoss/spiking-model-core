@@ -44,11 +44,11 @@ namespace embeddedpenguins::core::neuron::model
 
     public:
         const bool Valid() const { return valid_; }
-        const json& Control() const { return control_; }
-        const json& StackConfiguration() const { return stackConfiguration_; }
-        const json& Configuration() const { return configuration_; }
-        const json& Monitor() const { return monitor_; }
-        const json& Settings() const { return settings_; }
+        json& Control() { return control_; }
+        json& StackConfiguration() { return stackConfiguration_; }
+        json& Configuration() { return configuration_; }
+        json& Monitor() { return monitor_; }
+        json& Settings() { return settings_; }
         const string& ModelName() const { return modelName_; }
         void ModelName(const string& modelName) { modelName_ = modelName; }
         const string& DeploymentName() const { return deploymentName_; }
@@ -96,6 +96,18 @@ namespace embeddedpenguins::core::neuron::model
             return valid_;
         }
 
+        void UpdateSetting(const string& settingsKey, const string& settingsValue)
+        {
+            if (settings_.contains(settingsKey))
+            {
+                cout << "Changing setting '" << settingsKey << "' to '" << settingsValue << "'\n";
+                settings_[settingsKey] = settingsValue;
+
+                // If we changed the recording path, clear the path cache so it will need to be recalculated.
+                if (settingsKey == "RecordFilePath") recordDirectory_.clear();
+            }
+        }
+
         const string ComposeRecordPath()
         {
             auto recordDirectory = ExtractRecordDirectory();
@@ -116,43 +128,30 @@ namespace embeddedpenguins::core::neuron::model
 
         const string ExtractRecordDirectory()
         {
-            string recordDirectory = recordDirectory_;
+            string recordFilePath = recordDirectory_;
 
-            if (recordDirectory.empty())
+            if (recordFilePath.empty())
             {
-                recordDirectory = "./";
-                auto path = configuration_["PostProcessing"]["RecordLocation"];
-                if (path.is_string())
-                    recordDirectory = path.get<string>();
-
-                if (recordDirectory[recordDirectory.length() - 1] != '/')
-                    recordDirectory += '/';
-
-                auto project = control_["Configuration"];
-                if (project.is_string())
+                recordFilePath = "./";
+                if (settings_.contains("RecordFilePath"))
                 {
-                    auto configuration= project.get<string>();
-                    auto lastSlashPos = configuration.rfind('/');
-                    if (lastSlashPos != configuration.npos)
-                        configuration = configuration.substr(lastSlashPos + 1, configuration.size() - lastSlashPos);
-
-                    auto jsonExtensionPos = configuration.rfind(".json");
-                    if (jsonExtensionPos != configuration.npos)
-                        configuration = configuration.substr(0, jsonExtensionPos);
-
-                    recordDirectory += configuration;
+                    auto recordFilePathJson = settings_["RecordFilePath"];
+                    if (recordFilePathJson.is_string())
+                        recordFilePath = recordFilePathJson.get<string>();
                 }
 
-                if (recordDirectory[recordDirectory.length() - 1] != '/')
-                    recordDirectory += '/';
+                if (recordFilePath[recordFilePath.length() - 1] != '/')
+                    recordFilePath += '/';
 
-                cout << "Record directory: " << recordDirectory << '\n';
-                create_directories(recordDirectory);
+                recordFilePath += modelName_ + "/" + deploymentName_ + "/" + engineName_ + "/";
 
-                recordDirectory_ = recordDirectory;
+                cout << "Record directory: " << recordFilePath << '\n';
+                create_directories(recordFilePath);
+
+                recordDirectory_ = recordFilePath;
             }
 
-            return recordDirectory;
+            return recordFilePath;
         }
 
     private:
@@ -277,7 +276,7 @@ namespace embeddedpenguins::core::neuron::model
         // of the control file, as previously read into the control_ field.
         // The file is resolved in the path specified the by the configurationPath_ field
         // read from the settings file.
-        // If any problem occurs, the valud_ field will be false.
+        // If any problem occurs, the valid_ field will be false.
         //
         void LoadConfiguration()
         {
