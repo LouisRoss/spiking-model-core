@@ -1,5 +1,7 @@
 #pragma once
 
+#include "libsocket/exception.hpp" // Test only
+
 #include <iostream>
 #include <thread>
 #include <mutex>
@@ -69,6 +71,7 @@ namespace embeddedpenguins::core::neuron::model
         ~WorkerThread()
         {
             Join();
+            implementation_.Cleanup();
         }
 
         //
@@ -76,36 +79,43 @@ namespace embeddedpenguins::core::neuron::model
         //
         void operator() ()
         {
-            while (code_ != WorkCode::Quit)
+            try
             {
-                WaitForSignal();
-
-                if (code_ == WorkCode::StartContinuous)
+                while (code_ != WorkCode::Quit)
                 {
-                    auto continuous {true};
-                    do
+                    WaitForSignal();
+
+                    if (code_ == WorkCode::StartContinuous)
+                    {
+                        auto continuous {true};
+                        do
+                        {
+                            implementation_.Process();
+                            if (WaitForSignal(milliseconds{25}))
+                            {
+                                continuous = code_ == WorkCode::StartContinuous;
+                            }
+                        } while (continuous);
+                    }
+
+                    if (code_ == WorkCode::StopContinuous)
+                    {
+                        SignalDone();
+                    }
+
+                    if (code_ == WorkCode::Scan)
                     {
                         implementation_.Process();
-                        if (WaitForSignal(milliseconds{25}))
-                        {
-                            continuous = code_ == WorkCode::StartContinuous;
-                        }
-                    } while (continuous);
+                        SignalDone();
+                    }
                 }
 
-                if (code_ == WorkCode::StopContinuous)
-                {
-                    SignalDone();
-                }
-
-                if (code_ == WorkCode::Scan)
-                {
-                    implementation_.Process();
-                    SignalDone();
-                }
+                SignalDone();
             }
-
-            SignalDone();
+            catch (const libsocket::socket_exception& e)
+            {
+                cout << "Weird unexpected exceptiong during thread operation " << e.mesg << "\n";
+            }
         }
 
         //

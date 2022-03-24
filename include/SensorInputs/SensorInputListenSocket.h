@@ -103,6 +103,11 @@ namespace embeddedpenguins::core::neuron::model
             return false;
         }
 
+        void Cleanup()
+        {
+            // TODO - do we need to move the dtor code here?
+        }
+
     private:
         void AcceptNewConnection(socket* readSocket, inet_stream_server* listenSocket)
         {

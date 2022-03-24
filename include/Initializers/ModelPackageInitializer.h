@@ -79,6 +79,7 @@ namespace embeddedpenguins::core::neuron::model
             ofstream csvfile;
             if (useWiringFile)
             {
+                cout << "Wiring file name: " << wiringFilename << "\n";
                 csvfile.open(wiringFilename);
                 csvfile << "presynaptic,postsynaptic,weight,type\n";
             }

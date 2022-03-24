@@ -4,6 +4,7 @@
 #include <chrono>
 #include <string>
 #include <fstream>
+#include <filesystem>
 #include <map>
 #include <tuple>
 
@@ -41,11 +42,18 @@ namespace embeddedpenguins::core::neuron::model
             return recordFile;
         }
 
+        static ConfigurationRepository*& Configuration()
+        {
+            static ConfigurationRepository* pConfiguration {};
+            return pConfiguration;
+        }
+
     public:
         Recorder(unsigned long long int& ticks, ConfigurationRepository& configuration) :
             ticks_(ticks)
         {
-            RecordFile() = configuration.ComposeRecordPath();
+            Configuration() = &configuration;
+            RecordFile() = configuration.ComposeRecordCachePath();
 
             cout << "Writing record header, overwriting previous record file at " << RecordFile() << "\n";
             ofstream recordfile;
@@ -99,6 +107,21 @@ namespace embeddedpenguins::core::neuron::model
             }
 
             MergedRecords().clear();
+        }
+
+        static void Finalize()
+        {
+            if (Configuration()->ExtractRecordDirectory().empty()) return;
+
+            const auto copyOptions =  std::filesystem::copy_options::overwrite_existing
+                                    | std::filesystem::copy_options::recursive;
+
+            cout << "Copying records from " << Configuration()->ExtractRecordCacheDirectory() << " to " << Configuration()->ExtractRecordDirectory() << "\n";
+
+            std::filesystem::create_directories(Configuration()->ExtractRecordDirectory());
+
+            std::filesystem::copy(Configuration()->ExtractRecordCacheDirectory(), Configuration()->ExtractRecordDirectory(), copyOptions); 
+            std::filesystem::remove_all(Configuration()->ExtractRecordCacheDirectory());
         }
     };
 }

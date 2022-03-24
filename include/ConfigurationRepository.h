@@ -40,7 +40,10 @@ namespace embeddedpenguins::core::neuron::model
         string deploymentName_ {};
         string engineName_ {};
         string recordDirectory_ {};
+        bool recordDirectoryRead_ { false };
+        string recordCacheDirectory_ {};
         string recordFile_ {};
+        string wiringFile_ {};
 
     public:
         const bool Valid() const { return valid_; }
@@ -103,55 +106,179 @@ namespace embeddedpenguins::core::neuron::model
                 cout << "Changing setting '" << settingsKey << "' to '" << settingsValue << "'\n";
                 settings_[settingsKey] = settingsValue;
 
-                // If we changed the recording path, clear the path cache so it will need to be recalculated.
-                if (settingsKey == "RecordFilePath") recordDirectory_.clear();
+                // If we changed the cached paths, clear the path cache so it will need to be recalculated.
+                if (settingsKey == "RecordFilePath") recordDirectoryRead_ = false;
+                if (settingsKey == "RecordFileCachePath") recordCacheDirectory_.clear();
             }
         }
 
+        //
+        //  Compose the record cache file path, taking into account 
+        // configured settings and their various defaults.
+        //
+        const string ComposeRecordCachePath()
+        {
+            return ComposeRecordPathForModel(ExtractRecordCacheDirectory(), ExtractRecordFile());
+        }
+
+        //
+        //  Compose the record file path, taking into account the configured
+        // settings and their various defaults.
+        //
         const string ComposeRecordPath()
         {
             auto recordDirectory = ExtractRecordDirectory();
+            if (recordDirectory.empty()) return recordDirectory;
 
-            string fileName = recordFile_;
-            if (fileName.empty())
-            {
-                fileName = "ModelEngineRecord.csv";
-                auto file(configuration_["PostProcessing"]["RecordFile"]);
-                if (file.is_string())
-                    fileName = file.get<string>();
-
-                recordFile_ = fileName;
-            }
-
-            return recordDirectory + fileName;
+            return ComposeRecordPathForModel(recordDirectory, ExtractRecordFile());
         }
 
+        //
+        //  Compose the wiring cache file path, taking into account 
+        // configured settings and their various defaults.
+        //
+        const string ComposeWiringCachePath()
+        {
+            return ComposeRecordPathForModel(ExtractRecordCacheDirectory(), ExtractRecordWiringFile());
+        }
+
+        //
+        //  Look up and cache the configured record cache directory.
+        // Default if unconfigured or empty is '../record/'.
+        // The directory is cached so that subsequent calls will not need to look it up.
+        //
+        const string ExtractRecordCacheDirectory()
+        {
+            string recordCacheDirectory = recordCacheDirectory_;
+
+            // Read and cache the directory only on the first call.
+            // An empty string is invalid, indicating the directory needs to be read.
+            if (recordCacheDirectory.empty())
+            {
+                recordCacheDirectory = "../record/";
+                if (settings_.contains("RecordFileCachePath"))
+                {
+                    string cachDirectory {};
+                    auto recordFileCachePathJson = settings_["RecordFileCachePath"];
+                    if (recordFileCachePathJson.is_string())
+                        cachDirectory = recordFileCachePathJson.get<string>();
+                    if (!cachDirectory.empty())
+                    {
+                        if (cachDirectory[cachDirectory.length() - 1] != '/')
+                            cachDirectory += '/';
+
+                        recordCacheDirectory = cachDirectory;
+                    }
+               }
+
+               recordCacheDirectory_ = recordCacheDirectory;
+                cout << "Record cache directory: " << recordCacheDirectory_ << '\n';
+            }
+
+            return recordCacheDirectory;
+        }
+
+        //
+        //  Look up and cache the configured record directory.
+        // Default if unconfigured or empty is an empty string, ''.
+        // The directory is cached so that subsequent calls will not need to look it up.
+        //
         const string ExtractRecordDirectory()
         {
-            string recordFilePath = recordDirectory_;
-
-            if (recordFilePath.empty())
+            // Read and cache the directory only on the first call.
+            if (!recordDirectoryRead_)
             {
-                recordFilePath = "./";
                 if (settings_.contains("RecordFilePath"))
                 {
                     auto recordFilePathJson = settings_["RecordFilePath"];
                     if (recordFilePathJson.is_string())
-                        recordFilePath = recordFilePathJson.get<string>();
+                    {
+                        auto recordFilePath = recordFilePathJson.get<string>();
+
+                        if (!recordFilePath.empty() && recordFilePath[recordFilePath.length() - 1] != '/')
+                            recordFilePath += '/';
+
+                        recordDirectory_ = recordFilePath;
+                        cout << "Record directory: " << recordDirectory_ << '\n';
+                    }
                 }
 
-                if (recordFilePath[recordFilePath.length() - 1] != '/')
-                    recordFilePath += '/';
-
-                recordFilePath += modelName_ + "/" + deploymentName_ + "/" + engineName_ + "/";
-
-                cout << "Record directory: " << recordFilePath << '\n';
-                create_directories(recordFilePath);
-
-                recordDirectory_ = recordFilePath;
+                recordDirectoryRead_ = true;
             }
 
-            return recordFilePath;
+            return recordDirectory_;
+        }
+
+        //
+        //  Given a bsse directory for a record path, compose the standard subdirectory,
+        // based on the current model name and other relevant parameters.
+        //
+        const string ComposeRecordPathForModel(const string baseDirectory, const string fileName)
+        {
+            string recordPath = baseDirectory;
+            recordPath += modelName_ + "/" + deploymentName_ + "/" + engineName_ + "/";
+
+            create_directories(recordPath);
+
+            return recordPath + fileName;
+        }
+
+        //
+        //  Look up and cache the configured record file name.
+        // Default if unconfigured or empty is 'ModelEngineRecord.csv'.
+        // The file name is cached so that subsequent calls will not need to look it up.
+        //
+        const string ExtractRecordFile()
+        {
+            string fileName = recordFile_;
+            if (fileName.empty())
+            {
+                fileName = "ModelEngineRecord.csv";
+                if (configuration_.contains("PostProcessing"))
+                {
+                    auto& postProcessingJson = configuration_["PostProcessing"];
+                    if (postProcessingJson.contains("RecordFile"))
+                    {
+                        auto& recordFileJson = postProcessingJson["RecordFile"];
+                        if (recordFileJson.is_string())
+                            fileName = recordFileJson.get<string>();
+
+                        if (fileName.length() < 4 || fileName.substr(fileName.length()-4, fileName.length()) != ".csv")
+                            fileName += ".csv";
+                    }
+                }
+
+                recordFile_ = fileName;
+            }
+
+            return fileName;
+        }
+
+        //
+        //  Look up and cache the configured wiring file name.
+        // Default if unconfigured or empty is 'wiring.csv'.
+        // The file name is cached so that subsequent calls will not need to look it up.
+        //
+        const string ExtractRecordWiringFile()
+        {
+            string fileName = wiringFile_;
+            if (fileName.empty())
+            {
+                fileName = "wiring.csv";
+                if (control_.contains("Wiring"))
+                {
+                    auto& wiringJson = control_["Wiring"];
+                    if (wiringJson.is_string())
+                        fileName = wiringJson.get<string>();
+
+                    if (fileName.length() < 4 || fileName.substr(fileName.length()-4, fileName.length()) != ".csv")
+                        fileName += ".csv";
+                }
+
+                wiringFile_ = fileName;
+            }
+
+            return fileName;
         }
 
     private:
@@ -280,6 +407,16 @@ namespace embeddedpenguins::core::neuron::model
         //
         void LoadConfiguration()
         {
+            // TODO - If we can find the configuration file through configurationPath_/modelName_/deploymentName_/engineName_/
+            //        use that, otherwise use the path configured in the control file.
+            /*
+            if (!modelName_.empty() && !deploymentName_.empty() && !engineName_.empty())
+            {
+                string configDirectory = configurationPath_ + "/" + modelName_ + "/" + deploymentName_ + "/" + engineName_ + "/";
+
+            }
+            */
+
             if (!control_.contains("Configuration"))
             {
                 cout << "Control file " << controlFile_ << " does not contain a 'Configuration' property\n";

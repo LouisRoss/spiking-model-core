@@ -50,6 +50,8 @@ namespace embeddedpenguins::core::neuron::model
 
         virtual bool Disconnect() override
         {
+            cout << "Recorder disconnecting\n";
+            Recorder<RECORDTYPE>::Finalize();
             return true;
         }
 
@@ -60,7 +62,8 @@ namespace embeddedpenguins::core::neuron::model
         
         virtual void StreamOutput(unsigned long long neuronIndex, short int activation, unsigned short synapseIndex, short int synapseStrength, NeuronRecordType type) override
         {
-            if (!context_.RecordEnable) return;
+            // If the configured record file path is empth, don't both recording.
+            if (configuration_.ComposeRecordPath().empty()) return;
             
             RECORDTYPE record(type, neuronIndex, activation, synapseIndex, synapseStrength);
             recorder_.Record(record);
