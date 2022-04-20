@@ -73,6 +73,8 @@ namespace embeddedpenguins::core::neuron::model
                 response_ = BuildFullStatusResponse(response).dump();
             else if (query == "dynamicstatus")
                 response_ = BuildDynamicStatusResponse(response).dump();
+            else if (query == "runmeasurements")
+                response_ = BuildRunMeasurementsResponse(response).dump();
             else if (query == "configurations")
                 response_ = BuildConfigurationsResponse(response).dump();
             else if (query == "settings")
@@ -100,6 +102,17 @@ namespace embeddedpenguins::core::neuron::model
         {
             json responseResponse;
             responseResponse["status"] = runner_.RenderDynamicStatus();
+            responseResponse["result"] = "ok";
+
+            response["response"] = responseResponse;
+
+            return response;
+        }
+
+        json& BuildRunMeasurementsResponse(json& response)
+        {
+            json responseResponse;
+            responseResponse["runmeasurements"] = runner_.RenderRunMeasurements();
             responseResponse["result"] = "ok";
 
             response["response"] = responseResponse;

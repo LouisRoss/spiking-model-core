@@ -108,7 +108,7 @@ namespace embeddedpenguins::core::neuron::model
             //if (spikes_.size() > 25)
             //    Flush();
 
-            SpikeSignal sample { static_cast<int>(context_.Iterations), static_cast<unsigned int>(neuronIndex) };
+            SpikeSignal sample { static_cast<int>(context_.Measurements.Iterations), static_cast<unsigned int>(neuronIndex) };
             if (protocol_.Buffer(sample)) Flush();
         }
 
@@ -118,15 +118,22 @@ namespace embeddedpenguins::core::neuron::model
 
             try
             {
-                cout << "Spike output socket sending " << protocol_.GetCurrentBufferCount() << " spikes: ";
-                SpikeSignal* spike = protocol_.SpikeBuffer();
-                auto baseTick = spike->Tick;
-                for (auto spikeIndex = 0; spikeIndex < protocol_.GetCurrentBufferCount(); spikeIndex++, spike++)
+                if (context_.LoggingLevel != LogLevel::None)
                 {
-                    spike->Tick -= baseTick;
-                    if (context_.LoggingLevel == LogLevel::Diagnostic) cout << "(" << spike->Tick << "," << spike->NeuronIndex << ") ";
+                    cout << "Spike output socket sending " << protocol_.GetCurrentBufferCount() << " spikes: ";
+
+                    if (context_.LoggingLevel == LogLevel::Diagnostic)
+                    {
+                        SpikeSignal* spike = protocol_.SpikeBuffer();
+                        auto baseTick = spike->Tick;
+                        for (auto spikeIndex = 0; spikeIndex < protocol_.GetCurrentBufferCount(); spikeIndex++, spike++)
+                        {
+                            spike->Tick -= baseTick;
+                            if (context_.LoggingLevel == LogLevel::Diagnostic) cout << "(" << spike->Tick << "," << spike->NeuronIndex << ") ";
+                        }
+                    }
+                    cout << " at tick " << context_.Measurements.Iterations << "\n";
                 }
-                cout << " at tick " << context_.Iterations << "\n";
                 
                 // First field is the count of structs in the array, not the byte count.
                 SpikeSignalLengthFieldType bufferLength = protocol_.GetCurrentBufferCount();

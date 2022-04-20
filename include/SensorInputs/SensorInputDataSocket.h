@@ -104,6 +104,8 @@ namespace embeddedpenguins::core::neuron::model
                 data.insert(element);
             }
 
+            if (loggingLevel_ != LogLevel::None)
+                cout << "Injecting input signal with " << data.size() << " spikes at tick " << iterations_ << "\n";
             injectCallback(data);
 
             return true;

@@ -42,6 +42,7 @@ namespace embeddedpenguins::core::neuron::model
         int id_;
         map<high_resolution_clock::time_point, tuple<int, string>> messages_;
         ostringstream stream_ {};
+        ostringstream nullstream_ {};
 
         static bool Enable(bool enable, bool readback)
         {
@@ -68,13 +69,18 @@ namespace embeddedpenguins::core::neuron::model
 
         ostringstream& Logger()
         {
-            return stream_;
+            if (Enabled())
+                return stream_;
+
+            return nullstream_;
         }
 
         void Logit(ostringstream& str)
         {
             if (Enabled())
                 messages_.insert(pair<high_resolution_clock::time_point, tuple<int, string>>(high_resolution_clock::now(), make_tuple(id_, str.str())));
+
+            nullstream_.clear();
         }
 
         void Logit()
@@ -85,6 +91,8 @@ namespace embeddedpenguins::core::neuron::model
                 stream_.clear();
                 stream_.str("");
             }
+
+            nullstream_.clear();
         }
 
         static map<high_resolution_clock::time_point, tuple<int, string>>& MergedMessages() { static map<high_resolution_clock::time_point, tuple<int, string>> mm; return mm; }

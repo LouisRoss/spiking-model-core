@@ -34,7 +34,7 @@ namespace embeddedpenguins::core::neuron::model
         SpikeOutputRecord(ModelEngineContext& context) :
             context_(context),
             configuration_(context_.Configuration),
-            ticks_(context_.Iterations),
+            ticks_(context_.Measurements.Iterations),
             recorder_(ticks_, configuration_)
         {
             cout << "SpikOutputRecord constructor\n";

@@ -15,7 +15,7 @@ namespace embeddedpenguins::core::neuron::model
     constexpr unsigned int SpikeSignalBufferCount { 250 };
     constexpr unsigned int SpikeSignalSize { sizeof(SpikeSignal) };
 
-    using SpikeSignalLengthFieldType = unsigned short int;
+    using SpikeSignalLengthFieldType = unsigned int;
     constexpr unsigned int SpikeSignalLengthSize { sizeof(SpikeSignalLengthFieldType) };
 
     class SpikeSignalProtocol

@@ -64,7 +64,6 @@ namespace embeddedpenguins::core::neuron::model
             sensorInput_ = std::move(make_unique<SensorInputListenSocket>(host, port, configuration_, iterations_, loggingLevel_,
                 [this](const multimap<int, unsigned long long int>& signalToInject) {
                     unique_lock<mutex> lock(mutex_);
-                    cout << "Injecting signal with " << signalToInject.size() << " spikes\n";
                     signalToInject_.insert(signalToInject.begin(), signalToInject.end());
                 }));
             sensorInput_->Initialize();
