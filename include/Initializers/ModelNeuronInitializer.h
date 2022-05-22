@@ -87,26 +87,6 @@ namespace embeddedpenguins::core::neuron::model
             return helper_->GetIndex(source.Row, source.Column);
         }
 
-        void SetExcitatoryNeuronType(const unsigned long long int source)
-        {
-            this->helper_->SetExcitatoryNeuronType(source);
-        }
-
-        void SetExcitatoryNeuronType(const Neuron2Dim& source)
-        {
-            SetExcitatoryNeuronType(helper_->GetIndex(source.Row, source.Column));
-        }
-
-        void SetInhibitoryNeuronType(const unsigned long long int source)
-        {
-            this->helper_->SetInhibitoryNeuronType(source);
-        }
-
-        void SetInhibitoryNeuronType(const Neuron2Dim& source)
-        {
-            SetInhibitoryNeuronType(helper_->GetIndex(source.Row, source.Column));
-        }
-
         const Neuron2Dim ResolveNeuron(const string& neuronName) const
         {
             auto neuronIt = namedNeurons_.find(neuronName);

@@ -46,12 +46,10 @@ namespace embeddedpenguins::core::neuron::model
             this->InitializeAnInput(I2);
 
             this->strength_ = 102;
-            this->SetInhibitoryNeuronType(Inh1);
             this->InitializeAConnection(N1, Inh1);
             this->InitializeAConnection(Inh1, I1);
 
             this->strength_ = 102;
-            this->SetInhibitoryNeuronType(Inh2);
             this->InitializeAConnection(N2, Inh2);
             this->InitializeAConnection(Inh2, I2);
 

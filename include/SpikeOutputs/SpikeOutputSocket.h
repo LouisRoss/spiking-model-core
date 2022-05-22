@@ -97,7 +97,7 @@ namespace embeddedpenguins::core::neuron::model
             //return type == NeuronRecordType::Refractory;
         }
 
-        virtual void StreamOutput(unsigned long long neuronIndex, short int activation, unsigned short synapseIndex, short int synapseStrength, NeuronRecordType type) override
+        virtual void StreamOutput(unsigned long long neuronIndex, short int activation, short int hypersensitive, unsigned short synapseIndex, short int synapseStrength, NeuronRecordType type) override
         {
             //cout << "SpikeOutputSocket::StreamOutput(" << neuronIndex << "," << activation << ")\n";
             //json sample;

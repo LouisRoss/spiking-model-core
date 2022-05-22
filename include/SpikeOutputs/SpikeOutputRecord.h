@@ -60,12 +60,12 @@ namespace embeddedpenguins::core::neuron::model
         //
         virtual bool RespectDisableFlag() override { return true; }
         
-        virtual void StreamOutput(unsigned long long neuronIndex, short int activation, unsigned short synapseIndex, short int synapseStrength, NeuronRecordType type) override
+        virtual void StreamOutput(unsigned long long neuronIndex, short int activation, short int hypersensitive, unsigned short synapseIndex, short int synapseStrength, NeuronRecordType type) override
         {
             // If the configured record file path is empth, don't both recording.
             if (configuration_.ComposeRecordPath().empty()) return;
             
-            RECORDTYPE record(type, neuronIndex, activation, synapseIndex, synapseStrength);
+            RECORDTYPE record(type, neuronIndex, activation, hypersensitive, synapseIndex, synapseStrength);
             recorder_.Record(record);
 
             FlushWhenBufferFull();
