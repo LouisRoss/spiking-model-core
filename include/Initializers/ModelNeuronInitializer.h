@@ -62,7 +62,7 @@ namespace embeddedpenguins::core::neuron::model
         void InitializeAnInput(int row, int column)
         {
             auto sourceIndex = helper_->GetIndex(row, column);
-            this->helper_->WireInput(sourceIndex, strength_, NeuronType::Excitatory);
+            this->helper_->WireInput(sourceIndex, strength_, SynapseType::Excitatory);
         }
 
         void InitializeAnInput(const Neuron2Dim& neuron)
@@ -74,7 +74,7 @@ namespace embeddedpenguins::core::neuron::model
         {
             auto sourceIndex = helper_->GetIndex(row, column);
             auto destinationIndex = helper_->GetIndex(destRow, destCol);
-            this->helper_->Wire(sourceIndex, destinationIndex, strength_, NeuronType::Excitatory);
+            this->helper_->Wire(sourceIndex, destinationIndex, strength_, SynapseType::Excitatory);
         }
 
         void InitializeAConnection(const Neuron2Dim& source, const Neuron2Dim& destination)

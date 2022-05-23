@@ -13,7 +13,7 @@ namespace embeddedpenguins::core::neuron::model
 {
     using std::ofstream;
 
-    using embeddedpenguins::core::neuron::model::ToRecordType;
+    using embeddedpenguins::core::neuron::model::ToModelType;
 
     //
     //
@@ -88,7 +88,7 @@ namespace embeddedpenguins::core::neuron::model
             {
                 protocol::ModelExpansionResponse::Connection& connection = *connections;
                 if (useWiringFile) csvfile << connection.PreSynapticNeuron + offsetIndex << "," << connection.PostSynapticNeuron + offsetIndex << "," << (int)connection.SynapticStrength << "," << (int)connection.Type << "\n";
-                this->helper_->Wire(connection.PreSynapticNeuron + offsetIndex, connection.PostSynapticNeuron + offsetIndex, (int)connection.SynapticStrength, ToRecordType(connection.Type));
+                this->helper_->Wire(connection.PreSynapticNeuron + offsetIndex, connection.PostSynapticNeuron + offsetIndex, (int)connection.SynapticStrength, ToModelType(connection.Type));
             }
         }
     };

@@ -16,13 +16,6 @@ namespace embeddedpenguins::core::neuron::model
         HyperSensitive
     };
 
-    enum class NeuronType : char
-    {
-        Excitatory,
-        Inhibitory,
-        Attention
-    };
-
     struct NeuronRecordConnection
     {
         unsigned long long int NeuronIndex { };
