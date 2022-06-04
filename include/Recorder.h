@@ -120,8 +120,17 @@ namespace embeddedpenguins::core::neuron::model
 
             std::filesystem::create_directories(Configuration()->ExtractRecordDirectory());
 
-            std::filesystem::copy(Configuration()->ExtractRecordCacheDirectory(), Configuration()->ExtractRecordDirectory(), copyOptions); 
-            std::filesystem::remove_all(Configuration()->ExtractRecordCacheDirectory());
+            std::error_code ec;
+            std::filesystem::copy(Configuration()->ExtractRecordCacheDirectory(), Configuration()->ExtractRecordDirectory(), copyOptions, ec);
+
+            if (ec.value == 0)
+            {
+                std::filesystem::remove_all(Configuration()->ExtractRecordCacheDirectory());
+            }
+            else
+            {
+                cout << "Recording copy failed with error " << ec << "\n";
+            }
         }
     };
 }
