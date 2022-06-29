@@ -48,5 +48,10 @@ namespace embeddedpenguins::core::neuron::model
         virtual short GetNeuronActivation(const unsigned long int source) const = 0;
         virtual vector<tuple<unsigned long long, short int, short int, unsigned short, short int, NeuronRecordType>> CollectRelevantNeurons(bool includeSynapses, bool includeActivation, bool includeHypersensitive) = 0;
         virtual unsigned long int FindRequiredSynapseCounts() = 0;
+
+        // Expansion mapping
+        virtual void AddExpansion(unsigned long int start, unsigned long int length) = 0;
+        virtual unsigned long int ExpansionOffset(unsigned short int expansionId) const = 0;
+
    };
 }

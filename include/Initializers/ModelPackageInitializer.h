@@ -52,9 +52,22 @@ namespace embeddedpenguins::core::neuron::model
             this->helper_->AllocateModel(deploymentResponse->NeuronCount);
             this->helper_->InitializeModel();
 
+            ofstream csvfile;
+            auto wiringFilename = helper_->GetWiringFilename();
+            if (!wiringFilename.empty())
+            {
+                cout << "Wiring file name: " << wiringFilename << "\n";
+                csvfile.open(wiringFilename);
+                csvfile << "expansion,offset,presynaptic,expansion,offset,postsynaptic,weight,type\n";
+            }
+
             unsigned int* deployments = deploymentResponse->GetDeployments();
+            unsigned long int expansionStart { 0 };
             for (auto i = 0; i < deploymentResponse->PopulationCount; i++)
             {
+                helper_->AddExpansion(expansionStart, deployments[i]);
+                expansionStart += deployments[i];
+
                 if (deployments[i] != 0)
                 {
                     cout << "Requesting expansion " << i << " for model " << modelName << "\n";
@@ -62,8 +75,9 @@ namespace embeddedpenguins::core::neuron::model
                     auto response = socket.TransactWithServer<protocol::ModelExpansionRequest, protocol::ModelExpansionResponse>(request);
                     auto* expansionResponse = reinterpret_cast<protocol::ModelExpansionResponse*>(response.get());
 
+                    auto engineExpansionBase = helper_->ExpansionOffset(i);
                     cout << "Initializing " << expansionResponse->ConnectionCount << " connections in expansion " << i << " with starting index " << expansionResponse->StartingNeuronOffset << " and count " << expansionResponse->NeuronCount << "\n";
-                    InitializeExpansion(expansionResponse->StartingNeuronOffset, expansionResponse->ConnectionCount, expansionResponse->GetConnections());
+                    InitializeExpansion(csvfile, i, engineExpansionBase, expansionResponse->ConnectionCount, expansionResponse->GetConnections());
                 }
             }
 
@@ -71,24 +85,19 @@ namespace embeddedpenguins::core::neuron::model
         }
 
     private:
-        void InitializeExpansion(unsigned int offsetIndex, unsigned int connectionCount, protocol::ModelExpansionResponse::Connection* connections)
+        void InitializeExpansion(ofstream& csvfile, unsigned int modelExpansion, unsigned int engineOffset, unsigned int connectionCount, protocol::ModelExpansionResponse::Connection* connections)
         {
-            auto wiringFilename = helper_->GetWiringFilename();
-            bool useWiringFile = !wiringFilename.empty();
-
-            ofstream csvfile;
-            if (useWiringFile)
-            {
-                cout << "Wiring file name: " << wiringFilename << "\n";
-                csvfile.open(wiringFilename);
-                csvfile << "presynaptic,postsynaptic,weight,type\n";
-            }
-
             for (auto i = 0; i < connectionCount; i++, connections++)
             {
                 protocol::ModelExpansionResponse::Connection& connection = *connections;
-                if (useWiringFile) csvfile << connection.PreSynapticNeuron + offsetIndex << "," << connection.PostSynapticNeuron + offsetIndex << "," << (int)connection.SynapticStrength << "," << (int)connection.Type << "\n";
-                this->helper_->Wire(connection.PreSynapticNeuron + offsetIndex, connection.PostSynapticNeuron + offsetIndex, (int)connection.SynapticStrength, ToModelType(connection.Type));
+                if (csvfile.is_open()) 
+                    csvfile 
+                    << modelExpansion << "," << engineOffset << "," << connection.PreSynapticNeuron + engineOffset << "," 
+                    << modelExpansion << "," << engineOffset << "," << connection.PostSynapticNeuron + engineOffset << "," 
+                    << (int)connection.SynapticStrength << "," 
+                    << (int)connection.Type 
+                    << "\n";
+                this->helper_->Wire(connection.PreSynapticNeuron + engineOffset, connection.PostSynapticNeuron + engineOffset, (int)connection.SynapticStrength, ToModelType(connection.Type));
             }
         }
     };

@@ -123,7 +123,7 @@ namespace embeddedpenguins::core::neuron::model
             std::error_code ec;
             std::filesystem::copy(Configuration()->ExtractRecordCacheDirectory(), Configuration()->ExtractRecordDirectory(), copyOptions, ec);
 
-            if (ec.value == 0)
+            if (ec.value() == 0)
             {
                 std::filesystem::remove_all(Configuration()->ExtractRecordCacheDirectory());
             }
