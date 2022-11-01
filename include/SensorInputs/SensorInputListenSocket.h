@@ -114,7 +114,7 @@ namespace embeddedpenguins::core::neuron::model
             if (ccSockets_.find(readSocket) == end(ccSockets_))
             {
                 cout << "SensorInputListenSocket found readable socket is listen socket, creating new connection\n";
-                auto dataSocket = make_unique<SensorInputDataSocket>(listenSocket, iterations_, loggingLevel_);
+                auto dataSocket = make_unique<SensorInputDataSocket>(listenSocket, iterations_, loggingLevel_, configuration_);
                 ccSockets_[dataSocket->StreamSocket()] = std::move(dataSocket);
                 MakeSelectSet();
             }

@@ -18,19 +18,11 @@ namespace embeddedpenguins::core::neuron::model
     class ISpikeOutput
     {
     public:
-    /*
-        enum class SpikeEventType
-        {
-            SpikeTime,
-            RefractoryTime,
-            SpikeRecentTime
-        };
-    */
-
         virtual ~ISpikeOutput() = default;
 
         virtual void CreateProxy(ModelEngineContext& context) = 0;
         virtual bool Connect() = 0;
+        virtual bool Connect(const string& connectionString, unsigned int filterBottom, unsigned int filterLength, unsigned int toIndex, unsigned int toOffset) = 0;
         virtual bool Disconnect() = 0;
         virtual bool RespectDisableFlag() = 0;
         virtual bool IsInterestedIn(NeuronRecordType type) { return true; }

@@ -6,6 +6,7 @@
 
 #include "nlohmann/json.hpp"
 
+#include "ModelMapper.h"
 #include "NeuronRecordCommon.h"
 #include "CoreCommon.h"
 
@@ -50,8 +51,7 @@ namespace embeddedpenguins::core::neuron::model
         virtual unsigned long int FindRequiredSynapseCounts() = 0;
 
         // Expansion mapping
-        virtual void AddExpansion(unsigned long int start, unsigned long int length) = 0;
-        virtual unsigned long int ExpansionOffset(unsigned short int expansionId) const = 0;
-
+        virtual void AddExpansion(const string& engine, unsigned long int start, unsigned long int length) = 0;
+        virtual const ModelMapper& GetExpansionMap() const = 0;
    };
 }

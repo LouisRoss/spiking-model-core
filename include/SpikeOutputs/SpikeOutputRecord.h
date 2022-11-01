@@ -48,6 +48,11 @@ namespace embeddedpenguins::core::neuron::model
             return true;
         }
 
+        virtual bool Connect(const string& connectionString, unsigned int filterBottom, unsigned int filterLength, unsigned int toIndex, unsigned int toOffset) override
+        {
+            return true;
+        }
+
         virtual bool Disconnect() override
         {
             cout << "Recorder disconnecting\n";

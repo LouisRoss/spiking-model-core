@@ -38,6 +38,8 @@ namespace embeddedpenguins::core::neuron::model
         InitializerDeleter deleteInitializer_ {};
         IModelInitializer* initializer_ {};
 
+        vector<SpikeOutputDescriptor> emptySpikeOutputList_ {};
+
     public:
         //
         // Use of a two-step creation process is mandatory:  Instantiate a proxy with the
@@ -73,6 +75,14 @@ namespace embeddedpenguins::core::neuron::model
                 return initializer_->Initialize();
 
             return false;
+        }
+
+        virtual const vector<SpikeOutputDescriptor>& GetInitializedOutputs() const override
+        {
+            if (initializer_ && valid_)
+                return initializer_->GetInitializedOutputs();
+
+            return emptySpikeOutputList_;
         }
 
     private:

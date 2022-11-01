@@ -19,6 +19,8 @@ namespace embeddedpenguins::core::neuron::model
     //
     class ModelPackageInitializer : public ModelNeuronInitializer
     {
+        vector<SpikeOutputDescriptor> spikeOutputDescriptors_ { };
+
     public:
         ModelPackageInitializer(IModelHelper* helper) :
             ModelNeuronInitializer(helper)
@@ -61,30 +63,43 @@ namespace embeddedpenguins::core::neuron::model
                 csvfile << "expansion,offset,presynaptic,expansion,offset,postsynaptic,weight,type\n";
             }
 
-            unsigned int* deployments = deploymentResponse->GetDeployments();
+            InitializeExpansionsForEngine(deploymentResponse, modelName, socket, csvfile);
+            InitializeInterconnects(modelName, deploymentName, engineName, socket);
+
+            return true;
+        }
+
+        virtual const vector<SpikeOutputDescriptor>& GetInitializedOutputs() const override
+        {
+            return spikeOutputDescriptors_;
+        }
+
+    private:
+        void InitializeExpansionsForEngine(protocol::ModelDeploymentResponse* deploymentResponse, const string& modelName, PackageInitializerDataSocket& socket, ofstream& csvfile)
+        {
+            protocol::ModelDeploymentResponse::Deployment* deployments = deploymentResponse->GetDeployments();
             unsigned long int expansionStart { 0 };
             for (auto i = 0; i < deploymentResponse->PopulationCount; i++)
             {
-                helper_->AddExpansion(expansionStart, deployments[i]);
-                expansionStart += deployments[i];
+                deployments[i].EngineName[79] = '\0';
+                string engineName(deployments[i].EngineName);
+                helper_->AddExpansion(engineName, expansionStart, deployments[i].NeuronCount);
+                expansionStart += deployments[i].NeuronCount;
 
-                if (deployments[i] != 0)
+                if (deployments[i].NeuronCount != 0)
                 {
                     cout << "Requesting expansion " << i << " for model " << modelName << "\n";
                     protocol::ModelExpansionRequest request(modelName, i);
                     auto response = socket.TransactWithServer<protocol::ModelExpansionRequest, protocol::ModelExpansionResponse>(request);
                     auto* expansionResponse = reinterpret_cast<protocol::ModelExpansionResponse*>(response.get());
 
-                    auto engineExpansionBase = helper_->ExpansionOffset(i);
+                    auto engineExpansionBase = helper_->GetExpansionMap().ExpansionOffset(i);
                     cout << "Initializing " << expansionResponse->ConnectionCount << " connections in expansion " << i << " with starting index " << expansionResponse->StartingNeuronOffset << " and count " << expansionResponse->NeuronCount << "\n";
                     InitializeExpansion(csvfile, i, engineExpansionBase, expansionResponse->ConnectionCount, expansionResponse->GetConnections());
                 }
             }
-
-            return true;
         }
 
-    private:
         void InitializeExpansion(ofstream& csvfile, unsigned int modelExpansion, unsigned int engineOffset, unsigned int connectionCount, protocol::ModelExpansionResponse::Connection* connections)
         {
             for (auto i = 0; i < connectionCount; i++, connections++)
@@ -98,6 +113,34 @@ namespace embeddedpenguins::core::neuron::model
                     << (int)connection.Type 
                     << "\n";
                 this->helper_->Wire(connection.PreSynapticNeuron + engineOffset, connection.PostSynapticNeuron + engineOffset, (int)connection.SynapticStrength, ToModelType(connection.Type));
+            }
+        }
+
+        void InitializeInterconnects(const string& modelName, const string& deploymentName, const string& engineName, PackageInitializerDataSocket& socket)
+        {
+            cout << "Requesting interconnects for model " << modelName << "\n";
+            protocol::ModelInterconnectRequest request(modelName, deploymentName, engineName);
+            auto response = socket.TransactWithServer<protocol::ModelInterconnectRequest, protocol::ModelInterconnectResponse>(request);
+            auto* interconnectionsResponse = reinterpret_cast<protocol::ModelInterconnectResponse*>(response.get());
+
+            cout << "ModelPackageInitializer::InitializeInterconnects retrieved " << interconnectionsResponse->InterconnecCount << " interconnects\n";
+            protocol::ModelInterconnectResponse::Interconnect* interconnects = interconnectionsResponse->GetInterconnections();
+
+            spikeOutputDescriptors_.clear();
+            for (auto i = 0; i < interconnectionsResponse->InterconnecCount; i++)
+            {
+                auto& interconnect = interconnects[i];
+
+                SpikeOutputDescriptor interconnectDescriptor;
+                interconnectDescriptor.Host = this->helper_->GetExpansionMap().ExpansionEngine(interconnect.ToExpansionIndex);
+                interconnectDescriptor.ModelSequence = interconnect.ToExpansionIndex;
+                interconnectDescriptor.ModelOffset = interconnect.ToLayerOffset;
+                interconnectDescriptor.Size = interconnect.FromLayerCount;
+                interconnectDescriptor.LocalModelSequence = interconnect.FromExpansionIndex;
+                interconnectDescriptor.LocalModelOffset = interconnect.FromLayerOffset;
+                interconnectDescriptor.LocalStart = this->helper_->GetExpansionMap().ExpansionOffset(interconnect.FromExpansionIndex);
+
+                spikeOutputDescriptors_.push_back(interconnectDescriptor);
             }
         }
     };

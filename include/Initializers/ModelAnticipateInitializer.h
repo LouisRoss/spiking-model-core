@@ -1,10 +1,13 @@
 #pragma once
 
+#include <vector>
 #include "IModelHelper.h"
 #include "ModelNeuronInitializer.h"
 
 namespace embeddedpenguins::core::neuron::model
 {
+    using std::vector;
+
     //
     // This custom initializer sets up a spiking neuron model for 
     // the 'anticipate' test, which demonstrates STDP over repeated
@@ -12,6 +15,8 @@ namespace embeddedpenguins::core::neuron::model
     //
     class ModelAnticipateInitializer : public ModelNeuronInitializer
     {
+        vector<IModelInitializer::SpikeOutputDescriptor> outputDescriptors_ { };
+
     public:
         ModelAnticipateInitializer(IModelHelper* helper) :
             ModelNeuronInitializer(helper)
@@ -54,6 +59,11 @@ namespace embeddedpenguins::core::neuron::model
             this->InitializeAConnection(Inh2, I2);
 
             return true;
+        }
+
+        virtual const vector<SpikeOutputDescriptor>& GetInitializedOutputs() const override
+        {
+            return outputDescriptors_;
         }
     };
 }

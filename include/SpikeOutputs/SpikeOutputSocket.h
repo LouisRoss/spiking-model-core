@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <memory>
+#include <limits>
 #include <tuple>
 #include <vector>
 
@@ -22,6 +23,7 @@ namespace embeddedpenguins::core::neuron::model
     using std::ifstream;
     using std::unique_ptr;
     using std::make_unique;
+    using std::numeric_limits;
     using std::tuple;
     using std::vector;
 
@@ -38,8 +40,9 @@ namespace embeddedpenguins::core::neuron::model
         const ConfigurationRepository& configuration_;
 
         unique_ptr<inet_stream> streamSocket_ {};
-        //json spikes_ {};
         SpikeSignalProtocol protocol_ {};
+        unsigned int filterBottom_ {};
+        unsigned int filterTop_ { numeric_limits<unsigned int>::max() };
 
     public:
         SpikeOutputSocket(ModelEngineContext& context) :
@@ -53,6 +56,8 @@ namespace embeddedpenguins::core::neuron::model
         virtual void CreateProxy(ModelEngineContext& context) override { }
 
         //
+        //  For connection to configured services, such as visualizers.  Develop the connection
+        // string from the configuration, leave filtering alone.
         //
         virtual bool Connect() override
         {
@@ -79,6 +84,26 @@ namespace embeddedpenguins::core::neuron::model
             return connected;
         }
 
+        //
+        //  For connection as an interconnect between an expansion/layer on one engine
+        // and an expansion/layer on an engine that may be the same or different.
+        // This form manages a filter, so that only spikes from the source expansion/layer
+        // are sent to the specified connection.
+        //
+        virtual bool Connect(const string& connectionString, unsigned int filterBottom, unsigned int filterLength, unsigned int toIndex, unsigned int toOffset) override
+        {
+            filterBottom_ = filterBottom;
+            filterTop_ = filterBottom + filterLength;
+            protocol_ = SpikeSignalProtocol(toIndex, toOffset, 250);
+
+            bool connected { false };
+
+            auto [host, port] = ParseConnectionString(connectionString, "localhost", "8001");
+            connected = TryConnect(host, port);
+
+            return connected;
+        }
+
         virtual bool Disconnect() override
         {
             streamSocket_.release();
@@ -99,22 +124,17 @@ namespace embeddedpenguins::core::neuron::model
 
         virtual void StreamOutput(unsigned long long neuronIndex, short int activation, short int hypersensitive, unsigned short synapseIndex, short int synapseStrength, NeuronRecordType type) override
         {
-            //cout << "SpikeOutputSocket::StreamOutput(" << neuronIndex << "," << activation << ")\n";
-            //json sample;
-            //sample.push_back(context_.Iterations);
-            //sample.push_back(neuronIndex);
-            //spikes_.push_back(sample);
+            // The default filter used by the default Connect(), is wide open.
+            if (neuronIndex < filterBottom_ || neuronIndex >= filterTop_)
+                return;
 
-            //if (spikes_.size() > 25)
-            //    Flush();
-
-            SpikeSignal sample { static_cast<int>(context_.Measurements.Iterations), static_cast<unsigned int>(neuronIndex) };
+            SpikeSignal sample { static_cast<int>(context_.Measurements.Iterations), static_cast<unsigned int>(neuronIndex) - filterBottom_ };
             if (protocol_.Buffer(sample)) Flush();
         }
 
         virtual void Flush() override
         {
-            if (protocol_.Empty()) return;
+            if (protocol_.IsEmpty()) return;
 
             try
             {
@@ -124,7 +144,7 @@ namespace embeddedpenguins::core::neuron::model
 
                     if (context_.LoggingLevel == LogLevel::Diagnostic)
                     {
-                        SpikeSignal* spike = protocol_.SpikeBuffer();
+                        auto* spike = protocol_.GetProtocolBuffer()->GetSpikeSignals();
                         auto baseTick = spike->Tick;
                         for (auto spikeIndex = 0; spikeIndex < protocol_.GetCurrentBufferCount(); spikeIndex++, spike++)
                         {
@@ -136,32 +156,13 @@ namespace embeddedpenguins::core::neuron::model
                 }
                 
                 // First field is the count of structs in the array, not the byte count.
-                SpikeSignalLengthFieldType bufferLength = protocol_.GetCurrentBufferCount();
-                streamSocket_->snd((void*)&bufferLength, SpikeSignalLengthSize);
-                streamSocket_->snd((void*)protocol_.SpikeBuffer(), protocol_.GetBufferSize(bufferLength));
+                streamSocket_->snd((void*)protocol_.GetProtocolBuffer(), protocol_.GetBufferSize());
             } catch (const socket_exception& exc)
             {
                 cout << "SpikeOutputSocket Flush() caught exception: " << exc.mesg;
             }
             
             protocol_.Reset();
-
-            /*
-            if (spikes_.empty()) return;
-
-            try
-            {
-                auto spikesDump = spikes_.dump();
-                cout << "SpikeOutputSocket flushing existing buffer of " << spikes_.size() << ": " << spikesDump << "\n";
-                *streamSocket_ << spikes_.dump();
-            } catch (const socket_exception& exc)
-            {
-                cout << "SpikeOutputSocket Flush() caught exception: " << exc.mesg;
-            }
-
-            spikes_.clear();
-            */
-
         }
 
     private:

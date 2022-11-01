@@ -1,15 +1,33 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 #include "IModelHelper.h"
 
 namespace embeddedpenguins::core::neuron::model
 {
+    using std::string;
+    using std::vector;
+
     //
     // All model initializers must implement this interface, to allow
     // interchangability between initializers.
     //
     class IModelInitializer
     {
+    public:
+        struct SpikeOutputDescriptor
+        {
+            string Host {};
+            unsigned int ModelSequence {};
+            unsigned long ModelOffset {};
+            unsigned long Size {};
+            unsigned int LocalModelSequence {};
+            unsigned long LocalModelOffset {};
+            unsigned long LocalStart {};
+        };
+
     public:
         virtual ~IModelInitializer() = default;
 
@@ -24,5 +42,12 @@ namespace embeddedpenguins::core::neuron::model
         // initialize any state needed for a specific use case.
         //
         virtual bool Initialize() = 0;
+
+        //
+        // After calling Initialize(), some initializers may have developed
+        // a vector of spike output descriptors that may be used to
+        // create ISpikeOutput implementations.
+        //
+        virtual const vector<SpikeOutputDescriptor>& GetInitializedOutputs() const = 0;
     };
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "nlohmann/json.hpp"
 
 #include "IModelHelper.h"
@@ -7,6 +9,8 @@
 
 namespace embeddedpenguins::core::neuron::model
 {
+    using std::vector;
+
     using nlohmann::json;
 
     //
@@ -16,6 +20,8 @@ namespace embeddedpenguins::core::neuron::model
     //
     class ModelLayerInitializer : public ModelNeuronInitializer
     {
+        vector<IModelInitializer::SpikeOutputDescriptor> outputDescriptors_ { };
+
     public:
         ModelLayerInitializer(IModelHelper* helper) :
             ModelNeuronInitializer(helper)
@@ -51,6 +57,11 @@ namespace embeddedpenguins::core::neuron::model
             InitializeARow(this->helper_->Height() - 1, 0);
 
             return true;
+        }
+
+        virtual const vector<SpikeOutputDescriptor>& GetInitializedOutputs() const override
+        {
+            return outputDescriptors_;
         }
 
     private:

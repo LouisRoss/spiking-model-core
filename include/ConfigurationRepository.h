@@ -8,6 +8,7 @@
 #include <filesystem>
 
 #include "nlohmann/json.hpp"
+#include "ModelMapper.h"
 
 namespace embeddedpenguins::core::neuron::model
 {
@@ -21,6 +22,7 @@ namespace embeddedpenguins::core::neuron::model
     
     class ConfigurationRepository
     {
+        ModelMapper expansionMapper_ { };
         string stackConfigurationPath_ { "/configuration/configuration.json" };
         string defaultControlFile_ { "defaultcontrol.json" };
 
@@ -46,6 +48,12 @@ namespace embeddedpenguins::core::neuron::model
         string wiringFile_ {};
 
     public:
+        void AddExpansion(const string& engine, unsigned long int start, unsigned long int length)
+        {
+            expansionMapper_.AddExpansion(engine, start, length);
+        }
+        const ModelMapper& ExpansionMap() const { return expansionMapper_; };
+
         const bool Valid() const { return valid_; }
         json& Control() { return control_; }
         json& StackConfiguration() { return stackConfiguration_; }
@@ -81,6 +89,8 @@ namespace embeddedpenguins::core::neuron::model
         {
             controlFile_ = controlFile;
             valid_ = true;
+
+            expansionMapper_.Reset();
 
             LoadStackConfiguration();
 
