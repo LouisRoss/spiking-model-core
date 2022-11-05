@@ -74,6 +74,10 @@ namespace embeddedpenguins::core::neuron::model
             implementation_.Cleanup();
         }
 
+        const IMPLEMENTATIONTYPE& GetImplementation() const {
+            return implementation_;
+        }
+
         //
         // The thread class calls this method on the new thread.
         //

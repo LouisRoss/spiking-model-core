@@ -69,6 +69,44 @@ namespace embeddedpenguins::core::neuron::model
             return true;
         }
 
+        void InitializeInterconnects(const string& modelName, const string& deploymentName, const string& engineName, PackageInitializerDataSocket& socket)
+        {
+            cout << "Requesting interconnects for model " << modelName << ", deployment " << deploymentName << ", engine " << engineName << "\n";
+            protocol::ModelInterconnectRequest request(modelName, deploymentName, engineName);
+            auto response = socket.TransactWithServer<protocol::ModelInterconnectRequest, protocol::ModelInterconnectResponse>(request);
+            auto* interconnectionsResponse = reinterpret_cast<protocol::ModelInterconnectResponse*>(response.get());
+
+            cout << "ModelPackageInitializer::InitializeInterconnects retrieved " << interconnectionsResponse->InterconnecCount << " interconnects\n";
+            protocol::ModelInterconnectResponse::Interconnect* interconnects = interconnectionsResponse->GetInterconnections();
+
+            spikeOutputDescriptors_.clear();
+            for (auto i = 0; i < interconnectionsResponse->InterconnecCount; i++)
+            {
+                auto& interconnect = interconnects[i];
+
+                auto& fromEngine = this->helper_->GetExpansionMap().ExpansionEngine(interconnect.FromExpansionIndex);
+                if (fromEngine == engineName)
+                {
+                    cout 
+                        << "Creating spike output descriptor with From expansion index " << interconnect.FromExpansionIndex
+                        << ", which maps to Host '" << fromEngine 
+                        << "' and To expansion index " << interconnect.ToExpansionIndex 
+                        <<  ", which maps to Host '" << this->helper_->GetExpansionMap().ExpansionEngine(interconnect.ToExpansionIndex) 
+                        << "', To layer offset "  << interconnect.ToLayerOffset << "\n";
+                    SpikeOutputDescriptor interconnectDescriptor;
+                    interconnectDescriptor.Host = this->helper_->GetExpansionMap().ExpansionEngine(interconnect.ToExpansionIndex);
+                    interconnectDescriptor.ModelSequence = interconnect.ToExpansionIndex;
+                    interconnectDescriptor.ModelOffset = interconnect.ToLayerOffset;
+                    interconnectDescriptor.Size = interconnect.FromLayerCount;
+                    interconnectDescriptor.LocalModelSequence = interconnect.FromExpansionIndex;
+                    interconnectDescriptor.LocalModelOffset = interconnect.FromLayerOffset;
+                    interconnectDescriptor.LocalStart = this->helper_->GetExpansionMap().ExpansionOffset(interconnect.FromExpansionIndex);
+
+                    spikeOutputDescriptors_.push_back(interconnectDescriptor);
+                }
+            }
+        }
+
         virtual const vector<SpikeOutputDescriptor>& GetInitializedOutputs() const override
         {
             return spikeOutputDescriptors_;
@@ -113,34 +151,6 @@ namespace embeddedpenguins::core::neuron::model
                     << (int)connection.Type 
                     << "\n";
                 this->helper_->Wire(connection.PreSynapticNeuron + engineOffset, connection.PostSynapticNeuron + engineOffset, (int)connection.SynapticStrength, ToModelType(connection.Type));
-            }
-        }
-
-        void InitializeInterconnects(const string& modelName, const string& deploymentName, const string& engineName, PackageInitializerDataSocket& socket)
-        {
-            cout << "Requesting interconnects for model " << modelName << "\n";
-            protocol::ModelInterconnectRequest request(modelName, deploymentName, engineName);
-            auto response = socket.TransactWithServer<protocol::ModelInterconnectRequest, protocol::ModelInterconnectResponse>(request);
-            auto* interconnectionsResponse = reinterpret_cast<protocol::ModelInterconnectResponse*>(response.get());
-
-            cout << "ModelPackageInitializer::InitializeInterconnects retrieved " << interconnectionsResponse->InterconnecCount << " interconnects\n";
-            protocol::ModelInterconnectResponse::Interconnect* interconnects = interconnectionsResponse->GetInterconnections();
-
-            spikeOutputDescriptors_.clear();
-            for (auto i = 0; i < interconnectionsResponse->InterconnecCount; i++)
-            {
-                auto& interconnect = interconnects[i];
-
-                SpikeOutputDescriptor interconnectDescriptor;
-                interconnectDescriptor.Host = this->helper_->GetExpansionMap().ExpansionEngine(interconnect.ToExpansionIndex);
-                interconnectDescriptor.ModelSequence = interconnect.ToExpansionIndex;
-                interconnectDescriptor.ModelOffset = interconnect.ToLayerOffset;
-                interconnectDescriptor.Size = interconnect.FromLayerCount;
-                interconnectDescriptor.LocalModelSequence = interconnect.FromExpansionIndex;
-                interconnectDescriptor.LocalModelOffset = interconnect.FromLayerOffset;
-                interconnectDescriptor.LocalStart = this->helper_->GetExpansionMap().ExpansionOffset(interconnect.FromExpansionIndex);
-
-                spikeOutputDescriptors_.push_back(interconnectDescriptor);
             }
         }
     };
