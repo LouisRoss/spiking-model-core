@@ -81,7 +81,7 @@ namespace embeddedpenguins::core::neuron::model
         // Used by the receiver after receiving the byte count from the envelope.
         //
         SpikeSignalProtocol(SpikeSignalLengthFieldType byteCount) :
-            capacity_((byteCount - sizeof(SpikeHeader)) / SpikeSignalSize),
+            capacity_((byteCount - (sizeof(SpikeHeader) - sizeof(SpikeEnvelope))) / SpikeSignalSize),
             instance_(make_unique<char[]>(GetBufferSize(capacity_)))
         {
             GetProtocolBuffer()->PacketSize = byteCount;

@@ -98,7 +98,7 @@ namespace embeddedpenguins::core::neuron::model
                 //cout << "Sensor socket considering signal at tick " << nextSignal->first << "\n";
                 if (nextSignal->first < 0 || nextSignal->first <= tickNow)
                 {
-                    //cout << "Sensor socket adding offset " << nextSignal->second << " to signal to return\n";
+                    //cout << "Sensor socket adding offset " << nextSignal->second << " at tick " << nextSignal->first << " to signal to return\n";
                     signalToReturn_.push_back(nextSignal->second);
                     signalToInject_.extract(nextSignal);
                     done = signalToInject_.empty();

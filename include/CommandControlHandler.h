@@ -284,8 +284,7 @@ namespace embeddedpenguins::core::neuron::model
                 }
                 else
                 {
-                    controlResponse["result"] = "fail";
-                    controlResponse["error"] = "Model is not in a valid state for control changes";
+                    BuildErrorResponse(controlResponse, "Control failure", "Model is not in a valid state for control changes");
                 }
 
                 response["response"] = controlResponse;
@@ -323,7 +322,14 @@ namespace embeddedpenguins::core::neuron::model
             auto success = runner_.DeployModel(modelName, deploymentName, engineName);
 
             json deployResponse;
-            deployResponse["result"] = success ? "ok" : "fail";
+            if (success)
+            {
+                deployResponse["result"] = "ok";
+            }
+            else
+            {
+                BuildErrorResponse(deployResponse, "Deploy failure", ("Deploy failure for model: " + modelName + ", deployment: " + deploymentName + ", engine: " + engineName).c_str());
+            }
 
             response["response"] = deployResponse;
             return response;

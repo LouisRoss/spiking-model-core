@@ -126,12 +126,16 @@ namespace embeddedpenguins::core::neuron::model
     private:
         bool BuildInputBuffer(SpikeSignalProtocol& protocol, SpikeSignalLengthFieldType byteCount)
         {
+            // Skip past length field.
+            SpikeSignalPacket* buffer =  protocol.GetProtocolBuffer();
+            char* protocolBuffer = reinterpret_cast<char*>(buffer) + sizeof(SpikeSignalLengthFieldType);
+            
             const ssize_t expectedBufferCount { byteCount };
             ssize_t remainingBufferCount { byteCount };
             ssize_t totalReceived { 0 };
             do
             {
-                auto received = streamSocket_->rcv((void*)((char*)protocol.GetProtocolBuffer() + totalReceived), remainingBufferCount);
+                auto received = streamSocket_->rcv((void*)(protocolBuffer + totalReceived), remainingBufferCount);
                 totalReceived += received;
                 remainingBufferCount -= received;
 
