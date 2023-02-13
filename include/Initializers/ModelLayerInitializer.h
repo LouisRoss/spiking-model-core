@@ -40,14 +40,6 @@ namespace embeddedpenguins::core::neuron::model
             this->InitializeAnInput(0, 5);
 
             int initialStrength = 102;
-            if (this->Configuration().contains("Model"))
-            {
-                const auto& modelJson = this->Configuration()["Model"];
-                if (modelJson.contains("InitialSynapticStrength"))
-                {
-                    initialStrength = modelJson["InitialSynapticStrength"];
-                }
-            }
             this->strength_ = initialStrength;
 
             for (auto row = 0; row < this->helper_->Height() - 1; row++)

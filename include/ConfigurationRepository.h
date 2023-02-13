@@ -1,7 +1,5 @@
 #pragma once
 
-#include "sys/stat.h"
-
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -23,20 +21,19 @@ namespace embeddedpenguins::core::neuron::model
     class ConfigurationRepository
     {
         ModelMapper expansionMapper_ { };
-        string stackConfigurationPath_ { "/configuration/configuration.json" };
+        string defaultStackConfigurationFile_ { "configuration.json" };
         string defaultControlFile_ { "defaultcontrol.json" };
 
         bool valid_ { false };
         string configurationPath_ {};
         string settingsFile_ { "./ModelSettings.json" };
         string controlFile_ {};
+        string stackConfigFile_ {};
         string configFile_ {};
         string monitorFile_ {};
     protected:
         json stackConfiguration_ {};
-        json configuration_ {};
         json control_ {};
-        json monitor_ {};
         json settings_ {};
         string modelName_ {};
         string deploymentName_ {};
@@ -57,8 +54,6 @@ namespace embeddedpenguins::core::neuron::model
         const bool Valid() const { return valid_; }
         json& Control() { return control_; }
         json& StackConfiguration() { return stackConfiguration_; }
-        json& Configuration() { return configuration_; }
-        json& Monitor() { return monitor_; }
         json& Settings() { return settings_; }
         const string& ModelName() const { return modelName_; }
         void ModelName(const string& modelName) { modelName_ = modelName; }
@@ -92,19 +87,14 @@ namespace embeddedpenguins::core::neuron::model
 
             expansionMapper_.Reset();
 
-            LoadStackConfiguration();
-
             if (valid_)
                 LoadSettings();
 
             if (valid_)
+                LoadStackConfiguration();
+
+            if (valid_)
                 LoadControl();
-
-            if (valid_)
-                LoadConfiguration();
-
-            if (valid_)
-                LoadMonitor();
 
             return valid_;
         }
@@ -179,9 +169,9 @@ namespace embeddedpenguins::core::neuron::model
 
                         recordCacheDirectory = cachDirectory;
                     }
-               }
+                }
 
-               recordCacheDirectory_ = recordCacheDirectory;
+                recordCacheDirectory_ = recordCacheDirectory;
                 cout << "Record cache directory: " << recordCacheDirectory_ << '\n';
             }
 
@@ -198,12 +188,13 @@ namespace embeddedpenguins::core::neuron::model
             // Read and cache the directory only on the first call.
             if (!recordDirectoryRead_)
             {
+                string recordFilePath {"/record/"};
                 if (settings_.contains("RecordFilePath"))
                 {
                     auto recordFilePathJson = settings_["RecordFilePath"];
                     if (recordFilePathJson.is_string())
                     {
-                        auto recordFilePath = recordFilePathJson.get<string>();
+                        recordFilePath = recordFilePathJson.get<string>();
 
                         if (!recordFilePath.empty() && recordFilePath[recordFilePath.length() - 1] != '/')
                             recordFilePath += '/';
@@ -244,19 +235,23 @@ namespace embeddedpenguins::core::neuron::model
             if (fileName.empty())
             {
                 fileName = "ModelEngineRecord.csv";
-                if (configuration_.contains("PostProcessing"))
+                if (settings_.contains("DefaultRecordFile"))
                 {
-                    auto& postProcessingJson = configuration_["PostProcessing"];
-                    if (postProcessingJson.contains("RecordFile"))
-                    {
-                        auto& recordFileJson = postProcessingJson["RecordFile"];
-                        if (recordFileJson.is_string())
-                            fileName = recordFileJson.get<string>();
-
-                        if (fileName.length() < 4 || fileName.substr(fileName.length()-4, fileName.length()) != ".csv")
-                            fileName += ".csv";
-                    }
+                    auto& defaultRecordFileJson = settings_["DefaultRecordFile"];
+                    if (defaultRecordFileJson.is_string())
+                        fileName = defaultRecordFileJson.get<string>();
                 }
+
+                if (control_.contains("RecordFile"))
+                {
+                    auto& recordFileJson = settings_["RecordFile"];
+                    if (recordFileJson.is_string())
+                        fileName = recordFileJson.get<string>();
+
+                }
+
+                if (fileName.length() < 4 || fileName.substr(fileName.length()-4, fileName.length()) != ".csv")
+                    fileName += ".csv";
 
                 recordFile_ = fileName;
             }
@@ -293,49 +288,19 @@ namespace embeddedpenguins::core::neuron::model
 
     private:
         //
-        // All services in the stack can access the same configuration at the root of the filesystem: /configuration/configuration.json.
-        // Load that file into a json object.
-        //
-        void LoadStackConfiguration()
-        {
-            if (settingsFile_.length() < 5 || settingsFile_.substr(settingsFile_.length()-5, settingsFile_.length()) != ".json")
-                settingsFile_ += ".json";
-
-            if (!exists(stackConfigurationPath_))
-            {
-                cout << "Settings file " << stackConfigurationPath_ << " does not exist\n";
-                valid_ = false;
-                return;
-            }
-
-            cout << "LoadStackConfiguration from " << stackConfigurationPath_ << "\n";
-            try
-            {
-                ifstream stackConfig(stackConfigurationPath_);
-                stackConfig >> stackConfiguration_;
-            }
-            catch(const json::parse_error& e)
-            {
-                std::cerr << "Unable to read stack configuration file " << stackConfigurationPath_ << ": " << e.what() << '\n';
-                valid_ = false;
-            }
-        }
-
-        //
         // Load the settings from the JSON file speicified by the settingsFile_
         // field into the settings_ field.  As a side effect, also load the 'ConfigFilePath'
         // json property into the configurationPath_ field, if it exists.
-        // If any problem occurs, the valud_ field will be false.
+        // If any problem occurs, the valid_ field will be false.
         //
         void LoadSettings()
         {
             if (settingsFile_.length() < 5 || settingsFile_.substr(settingsFile_.length()-5, settingsFile_.length()) != ".json")
                 settingsFile_ += ".json";
 
-            struct stat buffer;   
-            if (!(stat (settingsFile_.c_str(), &buffer) == 0))
+            if (!exists(settingsFile_))
             {
-                cout << "Settings file " << settingsFile_ << " does not exist, using defaults\n";
+                cout << "Settings file " << settingsFile_ << " does not exist, unable to proceed.\n";
                 valid_ = false;
                 return;
             }
@@ -346,7 +311,16 @@ namespace embeddedpenguins::core::neuron::model
                 ifstream settings(settingsFile_);
                 settings >> settings_;
 
-                configurationPath_ = "./";
+            }
+            catch(const json::parse_error& e)
+            {
+                std::cerr << "Unable to read settings file " << settingsFile_ << ": " << e.what() << '\n';
+                valid_ = false;
+            }
+
+            configurationPath_ = ".";
+            if (valid_)
+            {
                 if (settings_.contains("ConfigFilePath"))
                 {
                     auto configFilePathJson = settings_["ConfigFilePath"];
@@ -354,9 +328,48 @@ namespace embeddedpenguins::core::neuron::model
                         configurationPath_ = configFilePathJson.get<string>();
                 }
             }
+        }
+
+        //
+        // All services in the stack can access the same configuration at the root of the filesystem: /configuration/configuration.json.
+        // Load that file into a json object.
+        //
+        void LoadStackConfiguration()
+        {
+            if (stackConfigFile_.empty())
+            {
+                if (settings_.contains("DefaultStackConfigurationFile"))
+                {
+                    stackConfigFile_ = settings_["DefaultStackConfigurationFile"].get<string>();
+                }
+                else
+                {
+                    stackConfigFile_ = defaultStackConfigurationFile_;
+                }
+            }
+
+            if (stackConfigFile_.length() < 5 || stackConfigFile_.substr(stackConfigFile_.length()-5, stackConfigFile_.length()) != ".json")
+                stackConfigFile_ += ".json";
+
+            stackConfigFile_ = configurationPath_ + "/" + stackConfigFile_;
+            cout << "Using stack configuration file " << stackConfigFile_ << "\n";
+
+            if (!exists(stackConfigFile_))
+            {
+                cout << "Stack configuration file " << stackConfigFile_ << " does not exist\n";
+                valid_ = false;
+                return;
+            }
+
+            cout << "LoadStackConfiguration from " << stackConfigFile_ << "\n";
+            try
+            {
+                ifstream stackConfig(stackConfigFile_);
+                stackConfig >> stackConfiguration_;
+            }
             catch(const json::parse_error& e)
             {
-                std::cerr << "Unable to read settings file " << settingsFile_ << ": " << e.what() << '\n';
+                std::cerr << "Unable to read stack configuration file " << stackConfigFile_ << ": " << e.what() << '\n';
                 valid_ = false;
             }
         }
@@ -387,8 +400,7 @@ namespace embeddedpenguins::core::neuron::model
             controlFile_ = configurationPath_ + "/" + controlFile_;
             cout << "Using control file " << controlFile_ << "\n";
 
-            struct stat buffer;   
-            if (!(stat (controlFile_.c_str(), &buffer) == 0))
+            if (!exists(controlFile_))
             {
                 cout << "Control file " << controlFile_ << " does not exist\n";
                 valid_ = false;
@@ -404,104 +416,6 @@ namespace embeddedpenguins::core::neuron::model
             catch(const json::parse_error& e)
             {
                 std::cerr << "Unable to read control file " << controlFile_ << ": " << e.what() << '\n';
-                valid_ = false;
-            }
-        }
-
-        //
-        // Load the JSON configuration file as specified by the 'Configuration' property
-        // of the control file, as previously read into the control_ field.
-        // The file is resolved in the path specified the by the configurationPath_ field
-        // read from the settings file.
-        // If any problem occurs, the valid_ field will be false.
-        //
-        void LoadConfiguration()
-        {
-            // TODO - If we can find the configuration file through configurationPath_/modelName_/deploymentName_/engineName_/
-            //        use that, otherwise use the path configured in the control file.
-            /*
-            if (!modelName_.empty() && !deploymentName_.empty() && !engineName_.empty())
-            {
-                string configDirectory = configurationPath_ + "/" + modelName_ + "/" + deploymentName_ + "/" + engineName_ + "/";
-
-            }
-            */
-
-            if (!control_.contains("Configuration"))
-            {
-                cout << "Control file " << controlFile_ << " does not contain a 'Configuration' property\n";
-                valid_ = false;
-                return;
-            }
-
-            configFile_ = control_["Configuration"].get<string>();
-            if (configFile_.length() < 5 || configFile_.substr(configFile_.length()-5, configFile_.length()) != ".json")
-                configFile_ += ".json";
-
-            configFile_ = configurationPath_ + "/" + configFile_;
-            cout << "Using config file " << configFile_ << "\n";
-
-            struct stat buffer;   
-            if (!(stat (configFile_.c_str(), &buffer) == 0))
-            {
-                cout << "Configuration file " << configFile_ << " does not exist\n";
-                valid_ = false;
-                return;
-            }
-
-            cout << "LoadConfiguration from " << configFile_ << "\n";
-            try
-            {
-                ifstream config(configFile_);
-                config >> configuration_;
-            }
-            catch(const json::parse_error& e)
-            {
-                std::cerr << "Unable to read configuration file " << configFile_ << ": " << e.what() << '\n';
-                valid_ = false;
-            }
-        }
-
-        //
-        // Load the JSON monitor file as specified by the 'Monitor' property
-        // of the control file, as previously read into the control_ field.
-        // The file is resolved in the path specified the by the configurationPath_ field
-        // read from the settings file.
-        // If any problem occurs, the valud_ field will be false.
-        //
-        void LoadMonitor()
-        {
-            if (!control_.contains("Monitor"))
-            {
-                cout << "Control file " << controlFile_ << " does not contain a 'Monitor' property\n";
-                valid_ = false;
-                return;
-            }
-
-            monitorFile_ = control_["Monitor"].get<string>();
-            if (monitorFile_.length() < 5 || monitorFile_.substr(monitorFile_.length()-5, monitorFile_.length()) != ".json")
-                monitorFile_ += ".json";
-
-            monitorFile_ = configurationPath_ + "/" + monitorFile_;
-            cout << "Using monitor file " << monitorFile_ << "\n";
-
-            struct stat buffer;   
-            if (!(stat (monitorFile_.c_str(), &buffer) == 0))
-            {
-                // Non-fatal error, leave valid_ as-is.
-                cout << "Monitor file " << monitorFile_ << " does not exist\n";
-                return;
-            }
-
-            cout << "LoadMonitor from " << monitorFile_ << "\n";
-            try
-            {
-                ifstream monitor(monitorFile_);
-                monitor >> monitor_;
-            }
-            catch(const json::parse_error& e)
-            {
-                std::cerr << "Unable to read monitor file " << monitorFile_ << ": " << e.what() << '\n';
                 valid_ = false;
             }
         }

@@ -29,7 +29,6 @@ namespace embeddedpenguins::core::neuron::model
     {
     public:
         virtual ~IModelHelper() = default;
-        virtual json& Configuration() = 0;
         virtual const json& StackConfiguration() const = 0;
         virtual const string& ModelName() const = 0;
         virtual const string& DeploymentName() const = 0;

@@ -45,13 +45,10 @@ namespace embeddedpenguins::core::neuron::model
 
         map<string, tuple<int, int>> namedNeurons_ { };
 
-        const json& Configuration() const { return helper_->Configuration(); }
-
     public:
         ModelNeuronInitializer(IModelHelper* helper) :
             helper_(helper)
         {
-            LoadOptionalNamedNeurons();
         }
 
     public:
@@ -101,32 +98,6 @@ namespace embeddedpenguins::core::neuron::model
             Neuron2Dim xxx { .Row = numeric_limits<unsigned long long>::max(), .Column = numeric_limits<unsigned long long>::max() };
             cout << "ResolveNeuron(" << neuronName << ") NOT found coordinates [" << xxx.Row << ", " << xxx.Column << "]\n";
             return xxx;
-        }
-
-    private:
-        void LoadOptionalNamedNeurons()
-        {
-            const json& configuration = Configuration();
-            if (configuration.contains("Model"))
-            {
-                const auto& modelSection = configuration["Model"];
-                if (!modelSection.is_null() && modelSection.contains("Neurons"))
-                {
-                    auto& namedNeuronsElement = modelSection["Neurons"];
-                    if (namedNeuronsElement.is_object())
-                    {
-                        for (auto& neuron: namedNeuronsElement.items())
-                        {
-                            auto neuronName = neuron.key();
-                            auto positionArray = neuron.value().get<std::vector<int>>();
-                            auto ypos = positionArray[0];
-                            auto xpos = positionArray[1];
-
-                            namedNeurons_[neuronName] = make_tuple(ypos, xpos);
-                        }
-                    }
-                }
-            }
         }
     };
 }

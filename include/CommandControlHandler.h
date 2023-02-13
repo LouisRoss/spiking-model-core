@@ -75,8 +75,6 @@ namespace embeddedpenguins::core::neuron::model
                 response_ = BuildDynamicStatusResponse(response).dump();
             else if (query == "runmeasurements")
                 response_ = BuildRunMeasurementsResponse(response).dump();
-            else if (query == "configurations")
-                response_ = BuildConfigurationsResponse(response).dump();
             else if (query == "settings")
                 response_ = BuildSettingsResponse(jsonQuery, response).dump();
             else if (query == "control")
@@ -117,73 +115,6 @@ namespace embeddedpenguins::core::neuron::model
 
             response["response"] = responseResponse;
 
-            return response;
-        }
-
-        json& BuildConfigurationsResponse(json& response)
-        {
-            cout << "Received configurations query\n";
-            json configuationsResponse;
-            json configurationOptions;
-
-            const auto& configurationSettings = runner_.Settings();
-
-            auto ok { false };
-            string errorDetail;
-            vector<string> configurations;
-            if (configurationSettings.contains("ConfigFilePath"))
-            {
-                const json& configFilePathJson = configurationSettings["ConfigFilePath"];
-                if (configFilePathJson.is_string())
-                {
-                    string configFilePath = configFilePathJson.get<string>();
-                    cout << "Configuration file path: " << configFilePathJson << "\n";
-                    if (exists(configFilePath))
-                    {
-                        for (auto& file : directory_iterator(configFilePath))
-                        {
-                            if (file.is_regular_file())
-                            {
-                                string filename = file.path().filename();
-                                cout << "Found configuration file " << filename << "\n";
-                                if (filename.length() > 5 && filename.substr(filename.length()-5, filename.length()) == ".json")
-                                    configurations.push_back(filename.substr(0, filename.length()-5));
-                            }
-                        }
-
-                        cout << "Returning:\n";
-                        for (auto& entry : configurations)
-                            cout << entry << "\n";
-
-                        ok = true;
-                    }
-                    else
-                    {
-                        errorDetail = "Configured path " + configFilePath + " does not exist";
-                    }
-                }
-                else
-                {
-                        errorDetail = "Configured path is not a valid string";
-                }
-            }
-            else
-            {
-                errorDetail = "No configured path";
-            }
-
-            configurationOptions["configurations"] = configurations;
-            configuationsResponse["options"] = configurationOptions;
-
-            configuationsResponse["result"] = ok ? "ok" : "fail";
-            if (!ok)
-            {
-                configuationsResponse["error"] = "No Configuration files";
-                configuationsResponse["errordetail"] = errorDetail;
-            }
-
-            response["response"] = configuationsResponse;
-            cout << "Returning json = " << response.dump() << "\n";
             return response;
         }
 

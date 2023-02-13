@@ -90,8 +90,6 @@ namespace embeddedpenguins::core::neuron::model
             centerHeight_ = ceil(windowHeight_ / 2);
             centerWidth_ = ceil(width_ / 2);
 
-            LoadOptionalNamedNeurons();
-
             return true;
         }
 
@@ -191,31 +189,6 @@ namespace embeddedpenguins::core::neuron::model
         virtual char EmitToken(unsigned long neuronIndex) = 0;
 
     private:
-        void LoadOptionalNamedNeurons()
-        {
-            const json& configuration = modelRunner_.Configuration();
-            if (configuration.contains("Model"))
-            {
-                const auto& modelSection = configuration["Model"];
-                if (!modelSection.is_null() && modelSection.contains("Neurons"))
-                {
-                    auto& namedNeuronsElement = modelSection["Neurons"];
-                    if (namedNeuronsElement.is_object())
-                    {
-                        for (auto& neuron: namedNeuronsElement.items())
-                        {
-                            auto neuronName = neuron.key();
-                            auto positionArray = neuron.value().get<std::vector<int>>();
-                            auto xpos = positionArray[0];
-                            auto ypos = positionArray[1];
-
-                            namedNeurons_[neuronName] = make_tuple(xpos, ypos);
-                        }
-                    }
-                }
-            }
-        }
-
         void PrintNetworkScan()
         {
             cout << cls;

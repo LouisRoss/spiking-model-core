@@ -41,10 +41,9 @@ namespace embeddedpenguins::core::neuron::model
         virtual bool Connect(const string& connectionString) override
         {
             auto sensorFile = connectionString;
-            auto& postProcessingSection = configuration_.Configuration()["PostProcessing"];
-            if (!postProcessingSection.is_null() && postProcessingSection.contains("SensorInputFile"))
+            if (configuration_.Control().contains("SensorInputFile"))
             {
-                const auto& sensorInputFile = postProcessingSection["SensorInputFile"];
+                const auto& sensorInputFile = configuration_.Control()["SensorInputFile"];
                 if (sensorInputFile.is_string())
                     sensorFile = sensorInputFile.get<string>();
             }
