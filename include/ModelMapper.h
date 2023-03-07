@@ -1,12 +1,14 @@
 #pragma once
 
-#include<limits>
+#include <iostream>
+#include <limits>
 #include <vector>
 #include <string>
 #include <algorithm>
 
 namespace embeddedpenguins::core::neuron::model
 {
+    using std::cout;
     using std::vector;
     using std::numeric_limits;
     using std::string;
@@ -56,6 +58,7 @@ namespace embeddedpenguins::core::neuron::model
         
         void AddExpansion(const string& engine, unsigned long int start, unsigned long int length)
         {
+            cout << "Adding expansion map entry for engine " << engine << ": starting at " << start << " for length " << length << "\n";
             expansionMap_.push_back(ExpansionMap{.ExpansionEngine=engine, .ExpansionStart=start, .ExpansionEnd=start+length});
         }
 
