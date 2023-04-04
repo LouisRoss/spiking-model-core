@@ -102,7 +102,9 @@ namespace embeddedpenguins::core::neuron::model
             if (!localOffsetCalculated_)
             {
                 auto* protocolPacket = protocol.GetProtocolBuffer();
+                cout << "Accepting spikes for population index " << protocolPacket->PopulationIndex << " and layer offset " << protocolPacket->LayerOffset << "\n";
                 localOffset_ = configuration_.ExpansionMap().ExpansionOffset(protocolPacket->PopulationIndex) + protocolPacket->LayerOffset;
+                cout << "Local offset calculated as " << localOffset_ << "\n";
                 localOffsetCalculated_ = true;
             }
 

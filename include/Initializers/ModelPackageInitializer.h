@@ -29,7 +29,7 @@ namespace embeddedpenguins::core::neuron::model
 
     public:
         // IModelInitializer implementaton
-        virtual bool Initialize() override
+        virtual bool InitializeOld() 
         {
             const string& modelName { this->helper_->ModelName() };
             const string& deploymentName { this->helper_->DeploymentName() };
@@ -43,7 +43,6 @@ namespace embeddedpenguins::core::neuron::model
 
             cout << "ModelPackageInitializer::Initialize model '" << modelName << "' depoyment '" << deploymentName << "' engine '" << engineName << "'\n";
             PackageInitializerDataSocket socket(this->helper_->StackConfiguration());
-
             protocol::ModelDeploymentRequest deploymentRequest(modelName, deploymentName, engineName);
 
             auto response = socket.TransactWithServer<protocol::ModelDeploymentRequest, protocol::ModelDeploymentResponse>(deploymentRequest);
@@ -63,10 +62,107 @@ namespace embeddedpenguins::core::neuron::model
                 csvfile << "expansion,offset,presynaptic,expansion,offset,postsynaptic,weight,type\n";
             }
 
-            InitializeExpansionsForEngine(deploymentResponse, modelName, socket, csvfile);
+            InitializeExpansionsForEngineOld(deploymentResponse, modelName, socket, csvfile);
             InitializeInterconnects(modelName, deploymentName, engineName, socket);
 
             return true;
+        }
+
+        virtual bool Initialize() override
+        {
+            const string& modelName { this->helper_->ModelName() };
+            const string& deploymentName { this->helper_->DeploymentName() };
+            const string& engineName { this->helper_->EngineName() };
+
+            if (modelName.empty())
+            {
+                cout << "ModelPackageInitializer::Initialize can find no model, not initializing\n";
+                return false;
+            }
+
+            cout << "ModelPackageInitializer::Initialize model '" << modelName << "' depoyment '" << deploymentName << "' engine '" << engineName << "'\n";
+            PackageInitializerDataSocket socket(this->helper_->StackConfiguration());
+            protocol::ModelFullDeploymentRequest deploymentRequest(modelName, deploymentName, true);
+
+            auto response = socket.TransactWithServer<protocol::ModelFullDeploymentRequest, protocol::ModelFullDeploymentResponse>(deploymentRequest);
+            auto* deploymentResponse = reinterpret_cast<protocol::ModelFullDeploymentResponse*>(response.get());
+            FilteredDeployment filteredDeployment = Filter(deploymentResponse, engineName);
+
+            cout << "ModelPackageInitializer::Initialize retrieved model size from packager of " << deploymentResponse->PopulationCount << " populations\n";
+
+            this->helper_->AllocateModel(filteredDeployment.NeuronCount);
+            this->helper_->InitializeModel();
+
+            ofstream csvfile;
+            auto wiringFilename = helper_->GetWiringFilename();
+            if (!wiringFilename.empty())
+            {
+                cout << "Wiring file name: " << wiringFilename << "\n";
+                csvfile.open(wiringFilename);
+                csvfile << "expansion,offset,presynaptic,expansion,offset,postsynaptic,weight,type\n";
+            }
+
+            InitializeExpansionsForEngine(filteredDeployment, modelName, socket, csvfile);
+            InitializeInterconnects(modelName, deploymentName, engineName, socket);
+
+            return true;
+        }
+
+        struct FilteredDeployment
+        {
+            unsigned int NeuronCount { 0 };
+
+            struct Deployment
+            {
+                string EngineName;
+                unsigned int NeuronOffset { 0 };
+                unsigned int NeuronCount { 0 };
+            };
+
+            vector<Deployment> Deployments;
+        };
+
+        FilteredDeployment Filter(protocol::ModelFullDeploymentResponse* deploymentResponse, const string& engine)
+        {
+            unsigned int neuronTotalCount { 0 };
+            unsigned int neuronOffset { 0 };
+
+            protocol::ModelFullDeploymentResponse::Deployment* deployments = deploymentResponse->GetDeployments();
+
+            cout << "**** Filtering full deployment with " << deploymentResponse->PopulationCount << " populations for engine " << engine << "\n";
+            FilteredDeployment deployment;
+            for (auto i = 0; i < deploymentResponse->PopulationCount; i++, deployments++)
+            {
+                unsigned int neuronCount { 0 };
+                if (engine == deployments->EngineName)
+                {
+                    neuronCount = deployments->NeuronCount;
+                }
+
+                cout << "****  Filter adding deployment of " << neuronCount << " neurons at offset " << neuronOffset << "\n";
+                deployment.Deployments.push_back(FilteredDeployment::Deployment{.EngineName = engine, .NeuronOffset = neuronOffset, .NeuronCount = neuronCount});
+
+                neuronTotalCount += neuronCount;
+                neuronOffset += neuronCount;
+            }
+
+            cout << "**** Filter created deployment with " << neuronTotalCount << " neurons\n";
+            deployment.NeuronCount = neuronTotalCount;
+            return deployment;
+        }
+
+
+        unsigned int TotalizeNeuronCount(protocol::ModelFullDeploymentResponse* deploymentResponse)
+        {
+            auto neuronCount { 0 };
+
+            for (auto i = 0; i < deploymentResponse->PopulationCount; i++)
+            {
+                auto& population = deploymentResponse->GetDeployments()[i];
+                neuronCount += population.NeuronCount;
+            }
+            
+            return neuronCount;
         }
 
         void InitializeInterconnects(const string& modelName, const string& deploymentName, const string& engineName, PackageInitializerDataSocket& socket)
@@ -113,7 +209,7 @@ namespace embeddedpenguins::core::neuron::model
         }
 
     private:
-        void InitializeExpansionsForEngine(protocol::ModelDeploymentResponse* deploymentResponse, const string& modelName, PackageInitializerDataSocket& socket, ofstream& csvfile)
+        void InitializeExpansionsForEngineOld(protocol::ModelDeploymentResponse* deploymentResponse, const string& modelName, PackageInitializerDataSocket& socket, ofstream& csvfile)
         {
             protocol::ModelDeploymentResponse::Deployment* deployments = deploymentResponse->GetDeployments();
             unsigned long int expansionStart { 0 };
@@ -135,6 +231,31 @@ namespace embeddedpenguins::core::neuron::model
                     cout << "Initializing " << expansionResponse->ConnectionCount << " connections in expansion " << i << " with starting index " << expansionResponse->StartingNeuronOffset << " and count " << expansionResponse->NeuronCount << "\n";
                     InitializeExpansion(csvfile, i, engineExpansionBase, expansionResponse->ConnectionCount, expansionResponse->GetConnections());
                 }
+            }
+        }
+
+        void InitializeExpansionsForEngine(const FilteredDeployment& filteredDeployments, const string& modelName, PackageInitializerDataSocket& socket, ofstream& csvfile)
+        {
+            unsigned long int expansionStart { 0 };
+            unsigned int expansionIndex { 0 };
+            for (const auto& deployment: filteredDeployments.Deployments)
+            {
+                helper_->AddExpansion(deployment.EngineName, expansionStart, deployment.NeuronCount);
+                expansionStart += deployment.NeuronCount;
+
+                if (deployment.NeuronCount != 0)
+                {
+                    cout << "Requesting expansion " << expansionIndex << " for model " << modelName << "\n";
+                    protocol::ModelExpansionRequest request(modelName, expansionIndex);
+                    auto response = socket.TransactWithServer<protocol::ModelExpansionRequest, protocol::ModelExpansionResponse>(request);
+                    auto* expansionResponse = reinterpret_cast<protocol::ModelExpansionResponse*>(response.get());
+
+                    auto engineExpansionBase = helper_->GetExpansionMap().ExpansionOffset(expansionIndex);
+                    cout << "Initializing " << expansionResponse->ConnectionCount << " connections in expansion " << expansionIndex << " with starting index " << expansionResponse->StartingNeuronOffset << " and count " << expansionResponse->NeuronCount << "\n";
+                    InitializeExpansion(csvfile, expansionIndex, engineExpansionBase, expansionResponse->ConnectionCount, expansionResponse->GetConnections());
+                }
+
+                expansionIndex++;
             }
         }
 
