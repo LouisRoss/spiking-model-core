@@ -5,7 +5,7 @@
 #include "nlohmann/json.hpp"
 
 #include "NeuronRecordCommon.h"
-#include "ModelEngineContext.h"
+#include "ModelContext.h"
 
 namespace embeddedpenguins::core::neuron::model
 {
@@ -13,14 +13,12 @@ namespace embeddedpenguins::core::neuron::model
 
     using nlohmann::json;
 
-    using embeddedpenguins::gpu::neuron::model::ModelEngineContext;
-
     class ISpikeOutput
     {
     public:
         virtual ~ISpikeOutput() = default;
 
-        virtual void CreateProxy(ModelEngineContext& context) = 0;
+        virtual void CreateProxy(ModelContext& context) = 0;
         virtual bool Connect() = 0;
         virtual bool Connect(const string& connectionString, unsigned int filterBottom, unsigned int filterLength, unsigned int toIndex, unsigned int toOffset) = 0;
         virtual bool Disconnect() = 0;

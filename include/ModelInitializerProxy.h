@@ -27,7 +27,7 @@ namespace embeddedpenguins::core::neuron::model
     //
     class ModelInitializerProxy : IModelInitializer
     {
-        using InitializerCreator = IModelInitializer* (*)(IModelHelper* helper);
+        using InitializerCreator = IModelInitializer* (*)(IModelHelper* helper, ModelContext* context);
         using InitializerDeleter = void (*)(IModelInitializer*);
 
         const string initializerSharedLibraryPath_ {};
@@ -62,11 +62,11 @@ namespace embeddedpenguins::core::neuron::model
 
     public:
         // IModelInitializer implementaton
-        virtual void CreateProxy(IModelHelper* helper) override
+        virtual void CreateProxy(IModelHelper* helper, ModelContext* context) override
         {
             LoadInitializer();
             if (createInitializer_ != nullptr)
-                initializer_ = createInitializer_(helper);
+                initializer_ = createInitializer_(helper, context);
         }
 
         virtual bool Initialize() override

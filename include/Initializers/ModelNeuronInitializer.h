@@ -40,20 +40,22 @@ namespace embeddedpenguins::core::neuron::model
     {
     protected:
         IModelHelper* helper_;
+        ModelContext* context_;
 
         int strength_ { 21 };
 
         map<string, tuple<int, int>> namedNeurons_ { };
 
     public:
-        ModelNeuronInitializer(IModelHelper* helper) :
-            helper_(helper)
+        ModelNeuronInitializer(IModelHelper* helper, ModelContext* context) :
+            helper_(helper),
+            context_(context)
         {
         }
 
     public:
         // IModelInitializer implementaton
-        virtual void CreateProxy(IModelHelper* helper) override { }
+        virtual void CreateProxy(IModelHelper* helper, ModelContext* context) override { }
 
     protected:
         void InitializeAnInput(int row, int column)

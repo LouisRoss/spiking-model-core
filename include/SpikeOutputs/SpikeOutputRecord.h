@@ -24,14 +24,14 @@ namespace embeddedpenguins::core::neuron::model
     template <class RECORDTYPE>
     class SpikeOutputRecord : public ISpikeOutput
     {
-        ModelEngineContext& context_;
+        ModelContext& context_;
         ConfigurationRepository& configuration_;
         unsigned long long int& ticks_;
         Recorder<RECORDTYPE> recorder_;
         unsigned int lineCount_ { };
 
     public:
-        SpikeOutputRecord(ModelEngineContext& context) :
+        SpikeOutputRecord(ModelContext& context) :
             context_(context),
             configuration_(context_.Configuration),
             ticks_(context_.Measurements.Iterations),
@@ -41,7 +41,7 @@ namespace embeddedpenguins::core::neuron::model
         }
 
         // ISpikeOutput implementaton
-        virtual void CreateProxy(ModelEngineContext& context) override { }
+        virtual void CreateProxy(ModelContext& context) override { }
 
         virtual bool Connect() override
         {

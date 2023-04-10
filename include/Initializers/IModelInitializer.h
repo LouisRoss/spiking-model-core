@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "IModelHelper.h"
+#include "ModelContext.h"
 
 namespace embeddedpenguins::core::neuron::model
 {
@@ -35,7 +36,7 @@ namespace embeddedpenguins::core::neuron::model
         // Proxy only: Load the shared library that this is a proxy for.
         // Implementations may stube this out, but must provide it.
         //
-        virtual void CreateProxy(IModelHelper* helper) = 0;
+        virtual void CreateProxy(IModelHelper* helper, ModelContext* context) = 0;
 
         //
         // Called before the model is run, this required method must 

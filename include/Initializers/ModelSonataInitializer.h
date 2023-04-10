@@ -35,8 +35,8 @@ namespace embeddedpenguins::core::neuron::model
         unique_ptr<SonataModelRepository> sonataRepository_ {nullptr};
 
     public:
-        ModelSonataInitializer(MODELHELPERTYPE& helper)  :
-            ModelNeuronInitializer<MODELHELPERTYPE>(helper)
+        ModelSonataInitializer(MODELHELPERTYPE& helper, ModelContext* context)  :
+            ModelNeuronInitializer<MODELHELPERTYPE>(helper, context)
         {
             cout << "ModelSonataInitializer ctor\n";
             if (this->Configuration().contains("Modle"))

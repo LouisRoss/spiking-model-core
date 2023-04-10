@@ -11,7 +11,7 @@
 
 #include "nlohmann/json.hpp"
 
-#include "ModelEngineContext.h"
+#include "ModelContext.h"
 #include "Log.h"
 #include "ConfigurationRepository.h"
 #include "SpikeOutputs/ISpikeOutput.h"
@@ -32,11 +32,9 @@ namespace embeddedpenguins::core::neuron::model
 
     using nlohmann::json;
 
-    using embeddedpenguins::gpu::neuron::model::ModelEngineContext;
-
     class SpikeOutputSocket : public ISpikeOutput
     {
-        ModelEngineContext& context_;
+        ModelContext& context_;
         const ConfigurationRepository& configuration_;
 
         unique_ptr<inet_stream> streamSocket_ {};
@@ -45,7 +43,7 @@ namespace embeddedpenguins::core::neuron::model
         unsigned int filterTop_ { numeric_limits<unsigned int>::max() };
 
     public:
-        SpikeOutputSocket(ModelEngineContext& context) :
+        SpikeOutputSocket(ModelContext& context) :
             context_(context),
             configuration_(context_.Configuration)
         {
@@ -53,7 +51,7 @@ namespace embeddedpenguins::core::neuron::model
         }
 
         // ISpikeOutput implementaton
-        virtual void CreateProxy(ModelEngineContext& context) override { }
+        virtual void CreateProxy(ModelContext& context) override { }
 
         //
         //  For connection to configured services, such as visualizers.  Develop the connection

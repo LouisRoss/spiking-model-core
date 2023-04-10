@@ -15,11 +15,9 @@ namespace embeddedpenguins::core::neuron::model
     using std::vector;
     using std::cout;
 
-    using embeddedpenguins::core::neuron::model::ConfigurationRepository;
-
     class SpikeOutputProxy : public ISpikeOutput
     {
-        using SpikeOutputCreator = ISpikeOutput* (*)(ModelEngineContext&);
+        using SpikeOutputCreator = ISpikeOutput* (*)(ModelContext&);
         using SpikeOutputDeleter = void (*)(ISpikeOutput*);
 
         const string spikeOutputSharedLibraryPath_;
@@ -61,7 +59,7 @@ namespace embeddedpenguins::core::neuron::model
 
     public:
         // ISpikeOutput implementaton
-        virtual void CreateProxy(ModelEngineContext& context) override
+        virtual void CreateProxy(ModelContext& context) override
         {
             LoadISpikeOutput();
             if (createSpikeOutput_ != nullptr)

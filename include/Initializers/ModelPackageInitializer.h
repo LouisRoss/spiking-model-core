@@ -22,8 +22,8 @@ namespace embeddedpenguins::core::neuron::model
         vector<SpikeOutputDescriptor> spikeOutputDescriptors_ { };
 
     public:
-        ModelPackageInitializer(IModelHelper* helper) :
-            ModelNeuronInitializer(helper)
+        ModelPackageInitializer(IModelHelper* helper, ModelContext* context) :
+            ModelNeuronInitializer(helper, context)
         {
         }
 
@@ -43,7 +43,7 @@ namespace embeddedpenguins::core::neuron::model
 
             cout << "ModelPackageInitializer::Initialize model '" << modelName << "' depoyment '" << deploymentName << "' engine '" << engineName << "'\n";
             PackageInitializerDataSocket socket(this->helper_->StackConfiguration());
-            protocol::ModelFullDeploymentRequest deploymentRequest(modelName, deploymentName, true);
+            protocol::ModelFullDeploymentRequest deploymentRequest(modelName, deploymentName, context_->RecordEnable);
 
             auto response = socket.TransactWithServer<protocol::ModelFullDeploymentRequest, protocol::ModelFullDeploymentResponse>(deploymentRequest);
             auto* deploymentResponse = reinterpret_cast<protocol::ModelFullDeploymentResponse*>(response.get());

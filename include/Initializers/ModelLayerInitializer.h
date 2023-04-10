@@ -23,8 +23,8 @@ namespace embeddedpenguins::core::neuron::model
         vector<IModelInitializer::SpikeOutputDescriptor> outputDescriptors_ { };
 
     public:
-        ModelLayerInitializer(IModelHelper* helper) :
-            ModelNeuronInitializer(helper)
+        ModelLayerInitializer(IModelHelper* helper, ModelContext* context) :
+            ModelNeuronInitializer(helper, context)
         {
         }
 
